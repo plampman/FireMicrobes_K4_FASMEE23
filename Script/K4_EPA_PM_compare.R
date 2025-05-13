@@ -12,7 +12,7 @@
 
 library(tidyverse)
 
-EPA_pm <- read.csv('./EPA_data_samples20240321.csv', header = T)
+EPA_pm <- read.csv('./Input_Data/Konza4/EPA_data_samples20240321.csv', header = T)
 
 EPA_pm <- EPA_pm %>%
   mutate(DateTime_cdt = ymd_hms(DateTime_cdt, tz = "CST6CDT"),

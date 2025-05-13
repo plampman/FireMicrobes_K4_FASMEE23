@@ -29,13 +29,13 @@ FOV_diam10x <- 2 ##mm
 FOV10x_area <- ((FOV_diam10x/2)^2)*pi ##mm^2
 FOV10x.filter <- Filter_area/FOV10x_area
 
-SampleInfo <- read.csv('./K4_SampleInfo.csv', header = T)
+SampleInfo <- read.csv('./Input_Data/Konza4/K4_SampleInfo.csv', header = T)
 
 SampleInfo <- SampleInfo %>%
   mutate(Sample = as.character(Sample),
          Sample_num = as.numeric(str_extract(Sample, "\\d+")))
 
-cells <- read.csv('./K4_CELL_COUNTS_20250401.csv', header = T)
+cells <- read.csv('./Input_Data/Konza4/K4_CELL_COUNTS_20250401.csv', header = T)
 
 spores <- cells %>%
   filter(StainType == "CW/KOH") %>%

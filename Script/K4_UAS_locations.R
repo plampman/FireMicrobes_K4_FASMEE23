@@ -16,7 +16,7 @@ library(geosphere)
 library(gridExtra)
 
 #Leland pump intervals associated with microbial samples for carbon quantification
-leland_ints <- read.csv('./K4_Leland_Intervals.csv', stringsAsFactors = FALSE, header = T)
+leland_ints <- read.csv('./Input_Data/Konza4/K4_Leland_Intervals.csv', stringsAsFactors = FALSE, header = T)
 leland_ints <- leland_ints %>%
   mutate(int = seq(1, by = 2, length.out = n()))
 
@@ -28,7 +28,7 @@ leland_ints_seq <- leland_ints_seq %>%
   mutate(int = rep(seq(1, by = 2, length.out = ceiling(n()/2)), each = 2))
 
 #list of csv files that represent each sample--taken from "EPA_Carbon_Data_Request_JA.xlsx"
-epa_K4_files <- list.files('./Carbon/Carbon_csv/EPA_smoke/', pattern="\\.csv$", full.names = T)
+epa_K4_files <- list.files('./Input_Data/Konza4/Carbon/Carbon_csv/EPA_smoke/', pattern="\\.csv$", full.names = T)
 
 all_epa_K4 = list()
 
@@ -60,7 +60,7 @@ epa_UAS_samples <- epa_UAS_samples %>%
 
 #UI drone flight records
 
-UI_UAS_files <- list.files('./FlightLogs/AirData_Konza4/', pattern="\\.csv$", full.names = T)
+UI_UAS_files <- list.files('./Input_Data/Konza4/FlightLogs/AirData_Konza4/', pattern="\\.csv$", full.names = T)
 
 ALL_UAS_files = list()
 

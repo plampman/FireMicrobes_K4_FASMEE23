@@ -13,7 +13,7 @@
 library(tidyverse)
 
 #Leland pump intervals associated with microbial samples for carbon quantification
-leland_ints <- read.csv('./K4_Leland_Intervals.csv', stringsAsFactors = FALSE, header = T)
+leland_ints <- read.csv('./Input_Data/Konza4/K4_Leland_Intervals.csv', stringsAsFactors = FALSE, header = T)
 leland_ints <- leland_ints %>%
   mutate(int = seq(1, by = 2, length.out = n()))
 
@@ -25,7 +25,7 @@ leland_ints_seq <- leland_ints_seq %>%
   mutate(int = rep(seq(1, by = 2, length.out = ceiling(n()/2)), each = 2))
 
 #list of csv files that represent each sample--taken from "EPA_Carbon_Data_Request_JA.xlsx"
-PA_files <- list.files('./PA/', pattern="\\.csv$", full.names = T)
+PA_files <- list.files('./Input_Data/Konza4/PA/', pattern="\\.csv$", full.names = T)
 
 all_PA = list()
 
