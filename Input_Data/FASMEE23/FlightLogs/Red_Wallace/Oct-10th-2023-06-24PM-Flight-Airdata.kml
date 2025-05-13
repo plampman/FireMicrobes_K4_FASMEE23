@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+    <Document>
+        <Style id="copterLineStyle">
+            <LineStyle>
+            <color>ff00ffff</color>
+                                <width>2</width>
+                                                    </LineStyle>
+        </Style>
+        <Style id="home">
+            <IconStyle>
+            <Icon>
+            <href>http://app.airdata.com/images/home-icon.png
+            </href>
+              </Icon>
+                <hotSpot x="0"  y="0" xunits="fraction" yunits="fraction"/>
+            </IconStyle>
+              <BalloonStyle>
+              <text>$[Message]</text>
+                                </BalloonStyle>
+        </Style>
+        <Placemark>
+  <name>Home</name>
+  <styleUrl>#home</styleUrl>
+  <ExtendedData>
+    <Data name="Message">
+      <value><![CDATA[Home point<BR>Altitude:9822 feet<BR><BR>&nbsp;]]></value>
+    </Data>
+  </ExtendedData>
+  <Point>
+    <altitudeMode>absolute</altitudeMode>
+    <coordinates>-112.064460422578,38.4981790795702,2993.6999512</coordinates>
+  </Point>
+</Placemark>
+        <Placemark>
+            <name>Oct-10th-2023-06-24PM</name>
+            <styleUrl>#copterLineStyle</styleUrl>
+            <LineString>
+                <altitudeMode>absolute</altitudeMode>
+                <coordinates>
+                    -112.064460422578,38.4981790795702,2993.6999512
+-112.064460415636,38.4981792044787,2993.6999512
+-112.064460522126,38.4981793685605,2993.6999512
+-112.064460347031,38.4981796813269,2993.6999512
+-112.064460195824,38.4981796424833,2993.6999512
+-112.064460190431,38.4981797641299,2993.6999512
+-112.064459942792,38.4981799575212,2993.6999512
+-112.064459957953,38.4981800842112,2993.6999512
+                </coordinates>
+            </LineString>
+        </Placemark>
+    </Document>
+</kml>

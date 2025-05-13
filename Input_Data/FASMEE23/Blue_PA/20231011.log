@@ -1,0 +1,913 @@
+R tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.056 2023/10/11T00:00:06z: DS3231
+ 0h00:03.071 2023/10/11T00:00:06z: BME280 (0x76)
+ 0h00:03.085 2023/10/11T00:00:06z: bc:ff:4d:57:53:b0
+ 0h00:03.087 2023/10/11T00:00:06z: SSID: AirVandalGold
+ 0h00:03.092 2023/10/11T00:00:06z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.101 2023/10/11T00:01:51z: DS3231
+ 0h00:03.116 2023/10/11T00:01:51z: BME280 (0x76)
+ 0h00:03.130 2023/10/11T00:01:51z: bc:ff:4d:57:53:b0
+ 0h00:03.132 2023/10/11T00:01:51z: SSID: AirVandalGold
+ 0h00:03.137 2023/10/11T00:01:51z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.092 2023/10/11T00:03:36z: DS3231
+ 0h00:03.107 2023/10/11T00:03:36z: BME280 (0x76)
+ 0h00:03.121 2023/10/11T00:03:36z: bc:ff:4d:57:53:b0
+ 0h00:03.123 2023/10/11T00:03:36z: SSID: AirVandalGold
+ 0h00:03.128 2023/10/11T00:03:36z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.052 2023/10/11T00:05:21z: DS3231
+ 0h00:03.068 2023/10/11T00:05:21z: BME280 (0x76)
+ 0h00:03.082 2023/10/11T00:05:21z: bc:ff:4d:57:53:b0
+ 0h00:03.083 2023/10/11T00:05:21z: SSID: AirVandalGold
+ 0h00:03.089 2023/10/11T00:05:21z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.051 2023/10/11T00:07:06z: DS3231
+ 0h00:03.066 2023/10/11T00:07:06z: BME280 (0x76)
+ 0h00:03.081 2023/10/11T00:07:06z: bc:ff:4d:57:53:b0
+ 0h00:03.082 2023/10/11T00:07:06z: SSID: AirVandalGold
+ 0h00:03.087 2023/10/11T00:07:06z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.053 2023/10/11T00:08:51z: DS3231
+ 0h00:03.068 2023/10/11T00:08:51z: BME280 (0x76)
+ 0h00:03.082 2023/10/11T00:08:51z: bc:ff:4d:57:53:b0
+ 0h00:03.084 2023/10/11T00:08:51z: SSID: AirVandalGold
+ 0h00:03.089 2023/10/11T00:08:51z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.093 2023/10/11T00:10:37z: DS3231
+ 0h00:03.109 2023/10/11T00:10:37z: BME280 (0x76)
+ 0h00:03.123 2023/10/11T00:10:37z: bc:ff:4d:57:53:b0
+ 0h00:03.124 2023/10/11T00:10:37z: SSID: AirVandalGold
+ 0h00:03.130 2023/10/11T00:10:37z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.090 2023/10/11T00:12:23z: DS3231
+ 0h00:03.105 2023/10/11T00:12:23z: BME280 (0x76)
+ 0h00:03.119 2023/10/11T00:12:23z: bc:ff:4d:57:53:b0
+ 0h00:03.121 2023/10/11T00:12:23z: SSID: AirVandalGold
+ 0h00:03.126 2023/10/11T00:12:23z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.093 2023/10/11T00:14:07z: DS3231
+ 0h00:03.108 2023/10/11T00:14:07z: BME280 (0x76)
+ 0h00:03.123 2023/10/11T00:14:07z: bc:ff:4d:57:53:b0
+ 0h00:03.124 2023/10/11T00:14:07z: SSID: AirVandalGold
+ 0h00:03.129 2023/10/11T00:14:08z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.109 2023/10/11T00:15:52z: DS3231
+ 0h00:03.124 2023/10/11T00:15:52z: BME280 (0x76)
+ 0h00:03.138 2023/10/11T00:15:52z: bc:ff:4d:57:53:b0
+ 0h00:03.140 2023/10/11T00:15:52z: SSID: AirVandalGold
+ 0h00:03.145 2023/10/11T00:15:52z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.108 2023/10/11T00:17:38z: DS3231
+ 0h00:03.123 2023/10/11T00:17:38z: BME280 (0x76)
+ 0h00:03.137 2023/10/11T00:17:38z: bc:ff:4d:57:53:b0
+ 0h00:03.139 2023/10/11T00:17:38z: SSID: AirVandalGold
+ 0h00:03.144 2023/10/11T00:17:38z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.154 2023/10/11T00:19:24z: DS3231
+ 0h00:03.169 2023/10/11T00:19:24z: BME280 (0x76)
+ 0h00:03.183 2023/10/11T00:19:24z: bc:ff:4d:57:53:b0
+ 0h00:03.185 2023/10/11T00:19:24z: SSID: AirVandalGold
+ 0h00:03.190 2023/10/11T00:19:24z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.063 2023/10/11T00:21:09z: DS3231
+ 0h00:03.079 2023/10/11T00:21:09z: BME280 (0x76)
+ 0h00:03.093 2023/10/11T00:21:09z: bc:ff:4d:57:53:b0
+ 0h00:03.094 2023/10/11T00:21:09z: SSID: AirVandalGold
+ 0h00:03.100 2023/10/11T00:21:09z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.106 2023/10/11T00:22:54z: DS3231
+ 0h00:03.121 2023/10/11T00:22:54z: BME280 (0x76)
+ 0h00:03.135 2023/10/11T00:22:54z: bc:ff:4d:57:53:b0
+ 0h00:03.137 2023/10/11T00:22:54z: SSID: AirVandalGold
+ 0h00:03.142 2023/10/11T00:22:54z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.174 2023/10/11T00:24:39z: DS3231
+ 0h00:03.189 2023/10/11T00:24:39z: BME280 (0x76)
+ 0h00:03.203 2023/10/11T00:24:39z: bc:ff:4d:57:53:b0
+ 0h00:03.205 2023/10/11T00:24:39z: SSID: AirVandalGold
+ 0h00:03.210 2023/10/11T00:24:39z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.112 2023/10/11T00:26:24z: DS3231
+ 0h00:03.127 2023/10/11T00:26:24z: BME280 (0x76)
+ 0h00:03.141 2023/10/11T00:26:24z: bc:ff:4d:57:53:b0
+ 0h00:03.143 2023/10/11T00:26:24z: SSID: AirVandalGold
+ 0h00:03.148 2023/10/11T00:26:24z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.051 2023/10/11T00:28:10z: DS3231
+ 0h00:03.067 2023/10/11T00:28:10z: BME280 (0x76)
+ 0h00:03.081 2023/10/11T00:28:10z: bc:ff:4d:57:53:b0
+ 0h00:03.083 2023/10/11T00:28:10z: SSID: AirVandalGold
+ 0h00:03.088 2023/10/11T00:28:10z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.048 2023/10/11T00:29:56z: DS3231
+ 0h00:03.063 2023/10/11T00:29:56z: BME280 (0x76)
+ 0h00:03.077 2023/10/11T00:29:56z: bc:ff:4d:57:53:b0
+ 0h00:03.079 2023/10/11T00:29:56z: SSID: AirVandalGold
+ 0h00:03.084 2023/10/11T00:29:56z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.044 2023/10/11T00:31:42z: DS3231
+ 0h00:03.060 2023/10/11T00:31:42z: BME280 (0x76)
+ 0h00:03.074 2023/10/11T00:31:42z: bc:ff:4d:57:53:b0
+ 0h00:03.076 2023/10/11T00:31:42z: SSID: AirVandalGold
+ 0h00:03.081 2023/10/11T00:31:42z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.045 2023/10/11T00:33:26z: DS3231
+ 0h00:03.060 2023/10/11T00:33:26z: BME280 (0x76)
+ 0h00:03.075 2023/10/11T00:33:26z: bc:ff:4d:57:53:b0
+ 0h00:03.076 2023/10/11T00:33:26z: SSID: AirVandalGold
+ 0h00:03.082 2023/10/11T00:33:27z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.105 2023/10/11T00:35:11z: DS3231
+ 0h00:03.121 2023/10/11T00:35:11z: BME280 (0x76)
+ 0h00:03.135 2023/10/11T00:35:11z: bc:ff:4d:57:53:b0
+ 0h00:03.136 2023/10/11T00:35:11z: SSID: AirVandalGold
+ 0h00:03.142 2023/10/11T00:35:11z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.131 2023/10/11T00:36:56z: DS3231
+ 0h00:03.146 2023/10/11T00:36:56z: BME280 (0x76)
+ 0h00:03.160 2023/10/11T00:36:56z: bc:ff:4d:57:53:b0
+ 0h00:03.162 2023/10/11T00:36:56z: SSID: AirVandalGold
+ 0h00:03.167 2023/10/11T00:36:56z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.055 2023/10/11T00:38:41z: DS3231
+ 0h00:03.070 2023/10/11T00:38:41z: BME280 (0x76)
+ 0h00:03.084 2023/10/11T00:38:41z: bc:ff:4d:57:53:b0
+ 0h00:03.086 2023/10/11T00:38:41z: SSID: AirVandalGold
+ 0h00:03.091 2023/10/11T00:38:41z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.108 2023/10/11T00:40:26z: DS3231
+ 0h00:03.123 2023/10/11T00:40:26z: BME280 (0x76)
+ 0h00:03.137 2023/10/11T00:40:26z: bc:ff:4d:57:53:b0
+ 0h00:03.139 2023/10/11T00:40:26z: SSID: AirVandalGold
+ 0h00:03.144 2023/10/11T00:40:26z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.058 2023/10/11T00:42:12z: DS3231
+ 0h00:03.074 2023/10/11T00:42:12z: BME280 (0x76)
+ 0h00:03.088 2023/10/11T00:42:12z: bc:ff:4d:57:53:b0
+ 0h00:03.089 2023/10/11T00:42:12z: SSID: AirVandalGold
+ 0h00:03.095 2023/10/11T00:42:12z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.117 2023/10/11T00:43:58z: DS3231
+ 0h00:03.132 2023/10/11T00:43:58z: BME280 (0x76)
+ 0h00:03.146 2023/10/11T00:43:58z: bc:ff:4d:57:53:b0
+ 0h00:03.148 2023/10/11T00:43:58z: SSID: AirVandalGold
+ 0h00:03.153 2023/10/11T00:43:58z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.097 2023/10/11T00:45:44z: DS3231
+ 0h00:03.112 2023/10/11T00:45:44z: BME280 (0x76)
+ 0h00:03.126 2023/10/11T00:45:44z: bc:ff:4d:57:53:b0
+ 0h00:03.128 2023/10/11T00:45:44z: SSID: AirVandalGold
+ 0h00:03.133 2023/10/11T00:45:44z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.058 2023/10/11T00:47:29z: DS3231
+ 0h00:03.073 2023/10/11T00:47:29z: BME280 (0x76)
+ 0h00:03.088 2023/10/11T00:47:29z: bc:ff:4d:57:53:b0
+ 0h00:03.089 2023/10/11T00:47:29z: SSID: AirVandalGold
+ 0h00:03.095 2023/10/11T00:47:29z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.055 2023/10/11T00:49:14z: DS3231
+ 0h00:03.071 2023/10/11T00:49:14z: BME280 (0x76)
+ 0h00:03.085 2023/10/11T00:49:14z: bc:ff:4d:57:53:b0
+ 0h00:03.086 2023/10/11T00:49:14z: SSID: AirVandalGold
+ 0h00:03.092 2023/10/11T00:49:14z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.048 2023/10/11T00:50:58z: DS3231
+ 0h00:03.064 2023/10/11T00:50:58z: BME280 (0x76)
+ 0h00:03.078 2023/10/11T00:50:58z: bc:ff:4d:57:53:b0
+ 0h00:03.080 2023/10/11T00:50:58z: SSID: AirVandalGold
+ 0h00:03.085 2023/10/11T00:50:58z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.049 2023/10/11T00:52:44z: DS3231
+ 0h00:03.064 2023/10/11T00:52:44z: BME280 (0x76)
+ 0h00:03.078 2023/10/11T00:52:44z: bc:ff:4d:57:53:b0
+ 0h00:03.080 2023/10/11T00:52:44z: SSID: AirVandalGold
+ 0h00:03.085 2023/10/11T00:52:44z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.090 2023/10/11T00:54:30z: DS3231
+ 0h00:03.105 2023/10/11T00:54:30z: BME280 (0x76)
+ 0h00:03.119 2023/10/11T00:54:30z: bc:ff:4d:57:53:b0
+ 0h00:03.121 2023/10/11T00:54:30z: SSID: AirVandalGold
+ 0h00:03.126 2023/10/11T00:54:30z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.085 2023/10/11T00:56:16z: DS3231
+ 0h00:03.101 2023/10/11T00:56:16z: BME280 (0x76)
+ 0h00:03.115 2023/10/11T00:56:16z: bc:ff:4d:57:53:b0
+ 0h00:03.116 2023/10/11T00:56:16z: SSID: AirVandalGold
+ 0h00:03.122 2023/10/11T00:56:16z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.039 2023/10/11T00:58:01z: DS3231
+ 0h00:03.054 2023/10/11T00:58:01z: BME280 (0x76)
+ 0h00:03.069 2023/10/11T00:58:01z: bc:ff:4d:57:53:b0
+ 0h00:03.070 2023/10/11T00:58:01z: SSID: AirVandalGold
+ 0h00:03.075 2023/10/11T00:58:01z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.090 2023/10/11T00:59:46z: DS3231
+ 0h00:03.105 2023/10/11T00:59:46z: BME280 (0x76)
+ 0h00:03.119 2023/10/11T00:59:46z: bc:ff:4d:57:53:b0
+ 0h00:03.121 2023/10/11T00:59:46z: SSID: AirVandalGold
+ 0h00:03.126 2023/10/11T00:59:46z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.039 2023/10/11T01:01:31z: DS3231
+ 0h00:03.054 2023/10/11T01:01:31z: BME280 (0x76)
+ 0h00:03.068 2023/10/11T01:01:31z: bc:ff:4d:57:53:b0
+ 0h00:03.070 2023/10/11T01:01:31z: SSID: AirVandalGold
+ 0h00:03.075 2023/10/11T01:01:31z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.037 2023/10/11T01:03:17z: DS3231
+ 0h00:03.053 2023/10/11T01:03:17z: BME280 (0x76)
+ 0h00:03.067 2023/10/11T01:03:17z: bc:ff:4d:57:53:b0
+ 0h00:03.069 2023/10/11T01:03:17z: SSID: AirVandalGold
+ 0h00:03.074 2023/10/11T01:03:17z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.081 2023/10/11T01:05:02z: DS3231
+ 0h00:03.096 2023/10/11T01:05:02z: BME280 (0x76)
+ 0h00:03.110 2023/10/11T01:05:02z: bc:ff:4d:57:53:b0
+ 0h00:03.112 2023/10/11T01:05:02z: SSID: AirVandalGold
+ 0h00:03.117 2023/10/11T01:05:02z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.096 2023/10/11T01:06:47z: DS3231
+ 0h00:03.112 2023/10/11T01:06:47z: BME280 (0x76)
+ 0h00:03.126 2023/10/11T01:06:47z: bc:ff:4d:57:53:b0
+ 0h00:03.128 2023/10/11T01:06:47z: SSID: AirVandalGold
+ 0h00:03.133 2023/10/11T01:06:47z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.104 2023/10/11T01:08:32z: DS3231
+ 0h00:03.119 2023/10/11T01:08:32z: BME280 (0x76)
+ 0h00:03.133 2023/10/11T01:08:32z: bc:ff:4d:57:53:b0
+ 0h00:03.135 2023/10/11T01:08:32z: SSID: AirVandalGold
+ 0h00:03.140 2023/10/11T01:08:32z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.099 2023/10/11T01:10:18z: DS3231
+ 0h00:03.114 2023/10/11T01:10:18z: BME280 (0x76)
+ 0h00:03.128 2023/10/11T01:10:18z: bc:ff:4d:57:53:b0
+ 0h00:03.130 2023/10/11T01:10:18z: SSID: AirVandalGold
+ 0h00:03.135 2023/10/11T01:10:18z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.050 2023/10/11T01:12:04z: DS3231
+ 0h00:03.066 2023/10/11T01:12:04z: BME280 (0x76)
+ 0h00:03.080 2023/10/11T01:12:04z: bc:ff:4d:57:53:b0
+ 0h00:03.082 2023/10/11T01:12:04z: SSID: AirVandalGold
+ 0h00:03.087 2023/10/11T01:12:04z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.097 2023/10/11T01:13:49z: DS3231
+ 0h00:03.112 2023/10/11T01:13:49z: BME280 (0x76)
+ 0h00:03.126 2023/10/11T01:13:49z: bc:ff:4d:57:53:b0
+ 0h00:03.128 2023/10/11T01:13:49z: SSID: AirVandalGold
+ 0h00:03.133 2023/10/11T01:13:49z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.092 2023/10/11T01:15:33z: DS3231
+ 0h00:03.108 2023/10/11T01:15:33z: BME280 (0x76)
+ 0h00:03.122 2023/10/11T01:15:33z: bc:ff:4d:57:53:b0
+ 0h00:03.124 2023/10/11T01:15:33z: SSID: AirVandalGold
+ 0h00:03.129 2023/10/11T01:15:33z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.092 2023/10/11T01:17:18z: DS3231
+ 0h00:03.107 2023/10/11T01:17:18z: BME280 (0x76)
+ 0h00:03.121 2023/10/11T01:17:18z: bc:ff:4d:57:53:b0
+ 0h00:03.123 2023/10/11T01:17:18z: SSID: AirVandalGold
+ 0h00:03.128 2023/10/11T01:17:18z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.148 2023/10/11T01:19:03z: DS3231
+ 0h00:03.163 2023/10/11T01:19:03z: BME280 (0x76)
+ 0h00:03.177 2023/10/11T01:19:03z: bc:ff:4d:57:53:b0
+ 0h00:03.179 2023/10/11T01:19:03z: SSID: AirVandalGold
+ 0h00:03.184 2023/10/11T01:19:03z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.044 2023/10/11T01:20:49z: DS3231
+ 0h00:03.060 2023/10/11T01:20:49z: BME280 (0x76)
+ 0h00:03.074 2023/10/11T01:20:49z: bc:ff:4d:57:53:b0
+ 0h00:03.076 2023/10/11T01:20:49z: SSID: AirVandalGold
+ 0h00:03.081 2023/10/11T01:20:49z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.042 2023/10/11T01:22:35z: DS3231
+ 0h00:03.057 2023/10/11T01:22:35z: BME280 (0x76)
+ 0h00:03.072 2023/10/11T01:22:35z: bc:ff:4d:57:53:b0
+ 0h00:03.073 2023/10/11T01:22:35z: SSID: AirVandalGold
+ 0h00:03.078 2023/10/11T01:22:35z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.087 2023/10/11T01:24:21z: DS3231
+ 0h00:03.103 2023/10/11T01:24:21z: BME280 (0x76)
+ 0h00:03.117 2023/10/11T01:24:21z: bc:ff:4d:57:53:b0
+ 0h00:03.118 2023/10/11T01:24:21z: SSID: AirVandalGold
+ 0h00:03.124 2023/10/11T01:24:21z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.154 2023/10/11T01:26:06z: DS3231
+ 0h00:03.169 2023/10/11T01:26:06z: BME280 (0x76)
+ 0h00:03.183 2023/10/11T01:26:06z: bc:ff:4d:57:53:b0
+ 0h00:03.185 2023/10/11T01:26:06z: SSID: AirVandalGold
+ 0h00:03.190 2023/10/11T01:26:06z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.045 2023/10/11T01:27:50z: DS3231
+ 0h00:03.061 2023/10/11T01:27:50z: BME280 (0x76)
+ 0h00:03.075 2023/10/11T01:27:50z: bc:ff:4d:57:53:b0
+ 0h00:03.076 2023/10/11T01:27:50z: SSID: AirVandalGold
+ 0h00:03.082 2023/10/11T01:27:50z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.090 2023/10/11T01:29:35z: DS3231
+ 0h00:03.106 2023/10/11T01:29:35z: BME280 (0x76)
+ 0h00:03.120 2023/10/11T01:29:35z: bc:ff:4d:57:53:b0
+ 0h00:03.122 2023/10/11T01:29:35z: SSID: AirVandalGold
+ 0h00:03.127 2023/10/11T01:29:35z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.087 2023/10/11T01:31:20z: DS3231
+ 0h00:03.103 2023/10/11T01:31:20z: BME280 (0x76)
+ 0h00:03.117 2023/10/11T01:31:20z: bc:ff:4d:57:53:b0
+ 0h00:03.118 2023/10/11T01:31:20z: SSID: AirVandalGold
+ 0h00:03.124 2023/10/11T01:31:20z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.101 2023/10/11T01:33:05z: DS3231
+ 0h00:03.117 2023/10/11T01:33:05z: BME280 (0x76)
+ 0h00:03.131 2023/10/11T01:33:05z: bc:ff:4d:57:53:b0
+ 0h00:03.133 2023/10/11T01:33:05z: SSID: AirVandalGold
+ 0h00:03.138 2023/10/11T01:33:05z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.054 2023/10/11T01:34:51z: DS3231
+ 0h00:03.069 2023/10/11T01:34:51z: BME280 (0x76)
+ 0h00:03.083 2023/10/11T01:34:51z: bc:ff:4d:57:53:b0
+ 0h00:03.085 2023/10/11T01:34:51z: SSID: AirVandalGold
+ 0h00:03.090 2023/10/11T01:34:51z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.057 2023/10/11T01:36:37z: DS3231
+ 0h00:03.072 2023/10/11T01:36:37z: BME280 (0x76)
+ 0h00:03.087 2023/10/11T01:36:37z: bc:ff:4d:57:53:b0
+ 0h00:03.088 2023/10/11T01:36:37z: SSID: AirVandalGold
+ 0h00:03.093 2023/10/11T01:36:37z: AP_STAR tmr
+ ets Jan  8 2013,rst cause:1, boot mode:(3,7)
+
+load 0x4010f000, len 1384, room 16 
+tail 8
+chksum 0x2d
+csum 0x2d
+v8b899c12
+~ld
+
+
+6.01
+ 0h00:03.088 2023/10/11T01:38:23z: DS3231
+ 0h00:03.104 2023/10/11T01:38:23z: BME280 (0x76)
+ 0h00:03.118 2023/10/11T01:38:23z: bc:ff:4d:57:53:b0
+ 0h00:03.120 2023/10/11T01:38:23z: SSID: AirVandalGold
+ 0h00:03.125 2023/10/11T01:38:23z: AP_STA
