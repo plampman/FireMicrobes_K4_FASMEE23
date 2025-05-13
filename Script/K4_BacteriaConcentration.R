@@ -20,9 +20,9 @@ FOV_diam100x <- 0.2 ##mm
 FOV100x_area <- ((FOV_diam100x/2)^2)*pi ##mm^2
 FOV100x.filter <- Filter_area/FOV100x_area ##FoVs/filter
 
-volume <- read.csv('./K4_volume.csv', header = T)
+volume <- read.csv('./Input_Data/Konza4/K4_volume.csv', header = T)
 
-cells <- read.csv('./K4_CELL_COUNTS_20250401.csv', header = T)
+cells <- read.csv('./Input_Data/Konza4/K4_CELL_COUNTS_20250401.csv', header = T)
 
 bacteria <- cells %>%
   filter(StainType == 'S9PI')

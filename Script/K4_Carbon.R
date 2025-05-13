@@ -13,7 +13,7 @@
 library(tidyverse)
 
 #AirLite (total carbon) pump intervals and volume
-AL_ints <- read.csv('./K4_AirLite_Intervals.csv', stringsAsFactors = FALSE, header = T)
+AL_ints <- read.csv('./Input_Data/Konza4/K4_AirLite_Intervals.csv', stringsAsFactors = FALSE, header = T)
 
 AL_ints <- AL_ints %>%
   mutate(
@@ -24,7 +24,7 @@ AL_ints <- AL_ints %>%
     Volume_m3 = Volume_L/1000)
 
 #Leland pump intervals associated with microbial samples for carbon quantification
-leland_ints <- read.csv('./K4_Leland_Intervals.csv', stringsAsFactors = FALSE, header = T)
+leland_ints <- read.csv('./Input_Data/Konza4/K4_Leland_Intervals.csv', stringsAsFactors = FALSE, header = T)
 leland_ints <- leland_ints %>%
   mutate(int = seq(1, by = 2, length.out = n()))
 
@@ -36,7 +36,7 @@ leland_ints_seq <- leland_ints_seq %>%
   mutate(int = rep(seq(1, by = 2, length.out = ceiling(n()/2)), each = 2))
 
 #list of csv files that represent each sample--taken from "EPA_Carbon_Data_Request_JA.xlsx"
-epa_C_files <- list.files('./Carbon/Carbon_csv/EPA_smoke/', pattern="\\.csv$", full.names = T)
+epa_C_files <- list.files('./Input_Data/Konza4/Carbon/Carbon_csv/EPA_smoke/', pattern="\\.csv$", full.names = T)
 
 all_epa_C = list()
 
@@ -56,7 +56,7 @@ epa_C <- epa_C %>%
   arrange(DateTime_cdt)
 
 
-Temp20240408 <- read.csv('./Carbon/Temp20240408.csv', header = T)
+Temp20240408 <- read.csv('./Input_Data/Konza4/Carbon/Temp20240408.csv', header = T)
 
 Temp20240408 <- Temp20240408 %>%
   mutate(DateTime_cdt = ymd_hms(DateTime_cdt, tz = "America/Chicago"))
@@ -97,7 +97,7 @@ epa_C_mean <- samples_epa_C %>%
     MedianMCE = median(MCE, na.rm = T)
     )
 
-UI_TC <- read.csv('./Carbon/Carbon_csv/OCEC.csv', stringsAsFactors = FALSE, header = T)
+UI_TC <- read.csv('./Input_Data/Konza4/Carbon/Carbon_csv/OCEC.csv', stringsAsFactors = FALSE, header = T)
 
 filter_area_cm2 <- ((3.7/2)^2) * pi #37mm diameter filter for TC
 
@@ -143,8 +143,8 @@ slim_UI_EPA_C <- UI_EPA_C %>%
 ############# UI MPSS box CO/CO2 quantification for 2 ambient samples and 1 smoke sample
 # For comparison with EPA CO/CO2 kolibri values
 
-UI_GB_amb <- read.table('./GreenBox_20240408_day1/20240408_Ambient1_2.txt', sep = ",", header = T)
-UI_GB_smoke <- read.table('./GreenBox_20240408_day1/20240408_smoke1.txt', sep = ",", header = T)
+UI_GB_amb <- read.table('./Input_Data/Konza4/GreenBox_20240408_day1/20240408_Ambient1_2.txt', sep = ",", header = T)
+UI_GB_smoke <- read.table('./Input_Data/Konza4/GreenBox_20240408_day1/20240408_smoke1.txt', sep = ",", header = T)
 
 UI_GB <- rbind(UI_GB_amb, UI_GB_smoke)
 
@@ -187,7 +187,7 @@ amb_thresh <- UI_CO_CO2 %>%
     CO2_max = max(CO2_corr_ppm)
   )
 
-PA_samples_K4 <- read.csv('./PA_samples_K4.csv', header = T)
+PA_samples_K4 <- read.csv('./Input_Data/Konza4/PA_samples_K4.csv', header = T)
 
 PA_samples_K4 <- PA_samples_K4 %>% 
   mutate(UTCDateTime = ymd_hms(UTCDateTime, tz = 'UTC'), 

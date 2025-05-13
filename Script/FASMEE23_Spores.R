@@ -25,7 +25,7 @@ FOV_diam10x <- 2 ##mm
 FOV10x_area <- ((FOV_diam10x/2)^2)*pi ##mm^2
 FOV10x.filter <- Filter_area/FOV10x_area
 
-SampleInfo <- read.csv('./FASMEE_Sample_Info20250329.csv', header = T)
+SampleInfo <- read.csv('./Input_Data/FASMEE23/FASMEE_Sample_Info20250329.csv', header = T)
 
 SampleInfo <- SampleInfo %>%
   mutate(DATE_UTC = mdy(DATE_UTC, tz = 'MST7MDT'),
@@ -41,7 +41,7 @@ CellSamples <- SampleInfo %>%
          Sample = str_extract(SampleID, "\\d+"))%>%
   filter(SampleRep == "B")
 
-cells <- read.csv('./Cell_Counts_FASMEE23_20250414.csv', header = T)
+cells <- read.csv('./Input_Data/FASMEE23/Cell_Counts_FASMEE23_20250414.csv', header = T)
 
 spores <- cells %>%
   filter(StainType == "CW/KOH") %>%
@@ -292,7 +292,7 @@ plt <- plt  +
 plot(plt)
 
 ggsave(
-  filename = "./K4_Spore_Boxplt_20241210.png",
+  filename = "./Output/K4_Spore_Boxplt_20241210.png",
   plot = plt,
   width = 7,
   height = 4.5,

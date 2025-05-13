@@ -12,7 +12,7 @@
 
 library(tidyverse)
 
-SampleInfo <- read.csv('./FASMEE_Sample_Info20250329.csv', header = T)
+SampleInfo <- read.csv('./Input_Data/FASMEE23/FASMEE_Sample_Info20250329.csv', header = T)
 
 SampleInfo <- SampleInfo %>%
   mutate(DATE_UTC = mdy(DATE_UTC, tz = 'MST7MDT'),
@@ -41,7 +41,7 @@ blue_quartz <- SampleInfo %>%
 blue_ints_seq <- pivot_longer(blue_ints, cols = c('SampleStart_UTC', 'SampleEnd_UTC'), names_to = 'StartStop', values_to = 'Time_UTC')
 
 
-head = read.table('./FASMEE_Carbon/HEADER.txt', header = FALSE, sep = ",", fill = TRUE) %>%
+head = read.table('./Input_Data/FASMEE23/FASMEE_Carbon/HEADER.txt', header = FALSE, sep = ",", fill = TRUE) %>%
   filter(!row_number() %in% 1)  
 head = as.data.frame(t(head))
 
@@ -57,7 +57,7 @@ head = as.data.frame(t(head))
 # write.table(data, './FASMEE_Carbon/Data/B10B11B12_updated.txt', row.names = F, col.names = F, sep = ',')
 
 #list of csv files that represent each sample--taken from "EPA_Carbon_Data_Request_JA.xlsx"
-FASMEE_CO_CO2_files <- list.files('./FASMEE_Carbon/Data/', pattern="\\.txt$", full.names = T)
+FASMEE_CO_CO2_files <- list.files('./Input_Data/FASMEE23/FASMEE_Carbon/Data/', pattern="\\.txt$", full.names = T)
 
 all_FASMEE_CO_CO2= list()
 
@@ -85,7 +85,7 @@ FASMEE_CO_CO2 <- FASMEE_CO_CO2 %>%
 ######################### Calibration equations
 #-----------------------------------------------------------------------------------------
 
-calibration_ints <- read.table('./FASMEE_Carbon/FASMEE_CO_CO2_Calib_ints.txt', stringsAsFactors = F, sep = ',', header = T)
+calibration_ints <- read.table('./Input_Data/FASMEE23/FASMEE_Carbon/FASMEE_CO_CO2_Calib_ints.txt', stringsAsFactors = F, sep = ',', header = T)
 
 calibration_ints <- calibration_ints %>% 
   mutate(
@@ -318,7 +318,7 @@ FASMEE_corr_CO_CO2_mean <- samples_FASMEE_CO_CO2 %>%
 # Total carbon integration
 #----------------------------------------------------------------------------------------------------------------
 
-UI_TC <- read.csv('./FASMEE_Carbon/FASMEE23_TC.csv', stringsAsFactors = FALSE, header = T)
+UI_TC <- read.csv('./Input_Data/FASMEE23/FASMEE_Carbon/FASMEE23_TC.csv', stringsAsFactors = FALSE, header = T)
 
 filter_area_cm2 <- ((3.7/2)^2) * pi #37mm diameter filter for TC
 
