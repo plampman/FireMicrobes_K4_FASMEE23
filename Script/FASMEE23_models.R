@@ -49,7 +49,7 @@ scaling_1000x = Filter_area/FOV100x_40_area
 
 
 
-SampleInfo <- read.csv('./FASMEE_Sample_Info20250329.csv', header = T)
+SampleInfo <- read.csv('./Input_Data/FASMEE23/FASMEE_Sample_Info20250329.csv', header = T)
 
 SampleInfo <- SampleInfo %>%
   mutate(DATE_UTC = mdy(DATE_UTC, tz = 'MST7MDT'),
@@ -65,7 +65,7 @@ CellSamples <- SampleInfo %>%
          Sample = str_extract(SampleID, "\\d+"))%>%
   filter(SampleRep == "B")
 
-cells <- read.csv('./Cell_Counts_FASMEE23_20250414.csv', header = T)
+cells <- read.csv('./Input_Data/FASMEE23/Cell_Counts_FASMEE23_20250414.csv', header = T)
 
 spores <- cells %>%
   filter(StainType == "CW/KOH") %>%
@@ -241,7 +241,7 @@ smoke_spores_pa_C$logPM25 <- log(smoke_spores_pa_C$MedianPM2.5_ug.m3)
 smoke_spores_pa_C$logPM10 <- log(smoke_spores_pa_C$MedianPM10_ug.m3)
 smoke_spores_pa_C$logPM1<- log(smoke_spores_pa_C$MedianPM1.0_ug.m3)
 
-write.csv(smoke_spores_pa_C, './K4_SmokeSpores.csv', row.names = F)
+write.csv(smoke_spores_pa_C, './Output/K4_SmokeSpores.csv', row.names = F)
 
 
 # model_logPM <- glmmTMB(TotalSpores_LBcorr ~ logPM25*MedianMCE + MedianMR +
@@ -278,7 +278,7 @@ FOV_diam100x <- 0.2 ##mm
 FOV100x_area <- ((FOV_diam100x/2)^2)*pi ##mm^2
 FOV100x.filter <- Filter_area/FOV100x_area ##FoVs/filter
 
-SampleInfo <- read.csv('./FASMEE_Sample_Info20250329.csv', header = T)
+SampleInfo <- read.csv('./Input_Data/FASMEE23/FASMEE_Sample_Info20250329.csv', header = T)
 
 SampleInfo <- SampleInfo %>%
   mutate(DATE_UTC = mdy(DATE_UTC, tz = 'MST7MDT'),
@@ -302,7 +302,7 @@ blue_info <- SampleInfo %>%
   filter(SampleRep == "A") %>%
   mutate(int = seq(1, by = 2, length.out = n()))
 
-cells <- read.csv('./Cell_Counts_FASMEE23_20250414.csv', header = T)
+cells <- read.csv('./Input_Data/FASMEE23/Cell_Counts_FASMEE23_20250414.csv', header = T)
 
 bacteria <- cells %>%
   filter(StainType == 'S9PI') %>%

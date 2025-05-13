@@ -12,7 +12,7 @@
 
 library(tidyverse)
 
-SampleInfo <- read.csv('./FASMEE_Sample_Info20250329.csv', header = T)
+SampleInfo <- read.csv('./Input_Data/FASMEE23/FASMEE_Sample_Info20250329.csv', header = T)
 
 SampleInfo <- SampleInfo %>%
   mutate(DATE_UTC = mdy(DATE_UTC, tz = 'MST7MDT'),
@@ -34,7 +34,7 @@ blue_ints <- SampleInfo %>%
 blue_ints_seq <- pivot_longer(blue_ints, cols = c('SampleStart_UTC', 'SampleEnd_UTC'), names_to = 'StartStop', values_to = 'Time_UTC')
 
 
-PA_files <- list.files('./Blue_PA/', pattern="\\.csv$", full.names = T)
+PA_files <- list.files('./Input_Data/FASMEE23/Blue_PA/', pattern="\\.csv$", full.names = T)
 
 all_PA = list()
 
