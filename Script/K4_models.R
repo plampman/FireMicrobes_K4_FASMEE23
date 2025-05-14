@@ -23,9 +23,6 @@ library(ggstatsplot)
 #Konza 4 Fungi
 #--------------------------------------------------------------------------------------
 
-# Total cell model for ambient versus smoke with mixing ratio
-#----------------------------------------------------------------------------------------------------
-
 
 # TotalSpores_m <- glmmTMB(TotalSpores_LBcorr ~ SmokeLevel + MedianMR +
 #                            offset(log_volume_offset_m3) + (1|Sample),
@@ -33,7 +30,7 @@ library(ggstatsplot)
 # summary(TotalSpores_m)
 
 TotalSpores_m <- glmmTMB(TotalSpores ~ SmokeLevel + MedianMR + 
-                           offset(log_volume_offset_m3) + offset(log1TotalSpores_LB) + (1|Sample),
+                           offset(log_volume_offset_m3) + offset(log1TotalSpores_LB) + (1|SampleID),
                          family=nbinom2(link="log"), dispformula = ~SmokeLevel, data = spores_pa_C, ziformula = ~0)
 summary(TotalSpores_m)
 
