@@ -73,7 +73,7 @@ spores <- spores %>%
     log1TotalSpores_LB = log1p(TotalSpores_LB),
     TotalSpores_LBcorr = pmax(0, TotalSpores - TotalSpores_LB),
     TotalSpores.filter_LBcorr = TotalSpores_LBcorr*FOV100x.filter,
-    TotalSpores_LBcorr_m3 = TotalSpores_LBcorr/RepVolume_m3,
+    TotalSpores_LBcorr_m3 = TotalSpores.filter_LBcorr/RepVolume_m3,
     log_volume_offset_m3 = if_else(SampleType == "Smoke" | SampleType == "Ambient", log(RepVolume_m3), 0)) %>% 
   filter(Platform == "Blue" | (Platform == "Red" & SampleType == "Ambient") | Platform == "Blank")
 
@@ -99,16 +99,10 @@ unique(spores_blue_pa_C$SampleID)
 #write.csv(spores_blue_pa_C, 'FASMEE23_Spores_PA_C_20250501.csv', row.names = F)
 
 sample_spores_blue <- spores_blue_pa_C  %>%
-  group_by(SampleID, SmokeLevel, RepVolume_m3, StainDate, DateCounted, StainType) %>%
+  group_by(SampleID, SmokeLevel, RepVolume_m3) %>%
   summarise(
-    median_spores.FOV = median(TotalSpores),
     mean_spores.FOV = mean(TotalSpores),
     sd_spores.FOV = sd(TotalSpores),
-    total_median_spores.filter = median_spores.FOV*FOV100x.filter,
-    total_mean_spores.filter = mean_spores.FOV*FOV100x.filter) %>% 
-  ungroup %>%
-  mutate(
-    total_median_spores.m3 = total_median_spores.filter/RepVolume_m3
-  )
-
+    mean_spores.m3 = mean(TotalSpores_LBcorr_m3),
+    sd_spores.m3 = sd(TotalSpores_LBcorr_m3))
 
