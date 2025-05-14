@@ -23,161 +23,26 @@ library(ggstatsplot)
 
 ### FASMEE Spores
 
-Filter_diam <- 17 ##mm (Obtained from staining tower diameter)
-Filter_area <- ((Filter_diam/2)^2)*pi ##mm^2
-FOV_diam10x <- 2 ##mm
-FOV10x_area <- ((FOV_diam10x/2)^2)*pi ##mm^2
-FOV10x.filter <- Filter_area/FOV10x_area
-
-FOV10x_10_area = FOV10x_area * 10
-
-scaling = Filter_area/FOV10x_10_area
-
-pi = pi
-
-Filter_diam <- 17 ##mm (Obtained from staining tower diameter)
-Filter_area <- ((Filter_diam/2)^2)*pi ##mm^2
-FOV_diam100x <- 0.2 ##mm
-FOV100x_area <- ((FOV_diam100x/2)^2)*pi ##mm^2
-FOV100x.filter <- Filter_area/FOV100x_area ##FoVs/filter
-
-FOV100x_40_area = FOV100x_area * 40
-
-scaling_1000x = Filter_area/FOV100x_40_area
-
-
-
-
-
-SampleInfo <- read.csv('./Input_Data/FASMEE23/FASMEE_Sample_Info20250329.csv', header = T)
-
-SampleInfo <- SampleInfo %>%
-  mutate(DATE_UTC = mdy(DATE_UTC, tz = 'MST7MDT'),
-         DATE_UTC = ymd(DATE_UTC),
-         SampleStart_UTC = ymd_hms(paste(DATE_UTC, SampleStart_UTC), tz = 'UTC'),
-         SampleEnd_UTC = ymd_hms(paste(DATE_UTC, SampleEnd_UTC), tz = 'UTC'),
-         DateTime_MDT = mdy_hm(DateTime_MDT, tz = 'MST7MDT'),
-         DateTime_UTC =  mdy_hm(DateTime_UTC, tz = 'UTC'))
-
-CellSamples <- SampleInfo %>%
-  filter(FilterType == 'PTFE', SampleType == 'Smoke' | SampleType == 'Ambient') %>%
-  mutate(SampleRep = str_extract(SampleID, ".$"),
-         Sample = str_extract(SampleID, "\\d+"))%>%
-  filter(SampleRep == "B")
-
-cells <- read.csv('./Input_Data/FASMEE23/Cell_Counts_FASMEE23_20250414.csv', header = T)
-
-spores <- cells %>%
-  filter(StainType == "CW/KOH") %>%
-  select(-LIVECounts, -DEADCounts, -TotalCells) %>%
-  rename(SampleID = 'SlideID') %>%
-  mutate(SampleID = if_else(SampleType != "LabBlank" & SampleType != "FieldBlank", gsub("_", "", SampleID), SampleID),
-         SampleID = if_else(SampleType == "FieldBlank", gsub("_A", "", SampleID), SampleID))
-
-spores <- spores %>%
-  mutate(
-    LB_Batch = as.factor(case_when(
-      StainDate >= 20240503 & StainDate < 20240807 ~ 'A',
-      StainDate >= 20240807 & StainDate < 20241119 ~ 'B',
-      StainDate >= 20241119 & StainDate < 20241210 ~ 'C',
-      ## There were two different TBE solutions with lab blanks from the same stain date, the first set below is TBE1 and second set is TBE2
-      StainDate >= 20241210 & StainDate < 20250205 & SampleID %in% 
-        c("LabBlank1A_B_20241210", "R5B", "R4B", "R3B", "R2B", "R1B", "B3B", "B2B") ~ 'D',
-      StainDate >= 20241210 & StainDate < 20250205 & SampleID %in% 
-        c("LabBlank2A_B_20241210", "B6B", "R6B", "R3B", "R7B", "R9B", "B9B", "R10B") ~ 'E', 
-      StainDate >= 20250205 ~ 'F',
-    )))
-
-spores <- left_join(spores, SampleInfo, by = "SampleID")
-
-spores <- spores %>%
-  mutate(
-    Volume_L = if_else(is.na(Volume_L), 0, Volume_L),
-    RepVolume_L = Volume_L/2, # A and B slide replicates (S9PI vs CW/KOH)
-    RepVolume_m3 = RepVolume_L/1000) %>%
-  select(-SampleType.y, -Sampler.y) %>%
-  rename(SampleType = 'SampleType.x', Sampler = 'Sampler.x')
-
-blank_means <- spores %>%
-  filter(SampleType == "LabBlank") %>%
-  group_by(LB_Batch) %>%
-  summarise(
-    TotalSpores_LB = mean(TotalSpores)
-  ) %>%
-  ungroup
-
-spores <- left_join(spores, blank_means, by = "LB_Batch")
-
-spores <- spores %>%
-  filter(SampleType != "LabBlank") %>%
-  mutate(
-    log1TotalSpores_LB = log1p(TotalSpores_LB),
-    TotalSpores_LBcorr = pmax(0, TotalSpores - TotalSpores_LB),
-    TotalSpores.filter_LBcorr = TotalSpores_LBcorr*FOV10x.filter,
-    TotalSpores_LBcorr_m3 = TotalSpores_LBcorr/RepVolume_m3)
-
-spores_stat_test <- spores %>%
-  mutate(
-    Platform = if_else(is.na(Platform), "Blank", Platform),
-    SampleType = factor(SampleType),
-    Platform = factor(Platform),
-    SampleID = factor(SampleID),
-    log_volume_offset_m3 = if_else(SampleType == "Smoke" | SampleType == "Ambient", log(RepVolume_m3), 0)) %>% 
-  filter(Platform == "Blue" | (Platform == "Red" & SampleType == "Ambient") | Platform == "Blank")
-
-spores_blue <- spores_stat_test %>%
-  filter(Platform == "Blue") %>%
-  mutate(Sample_num = if_else(Platform == "Blue", str_extract(Sample, "\\d+"), NA_character_),
-         Sample_num = as.numeric(Sample_num))
-
-spores_blue_pa <- left_join(spores_blue, PA_stats_FASMEE23, by = c('Sample_num' = 'Sample'))
-
-spores_blue_pa <- spores_blue_pa %>%
-  mutate(
-    presence = TotalSpores_LBcorr > 0,
-    MedianMR_centered = scale(MedianMR, scale = F)
-    )
-
-spores_blue_pa_C <- left_join(spores_blue_pa, slim_fasmmee_C, by = c('Sample_num' = 'Sample'))
-
-#write.csv(spores_blue_pa_C, 'FASMEE23_Spores_PA_C_20250501.csv', row.names = F)
-
-sample_spores_blue <- spores_blue  %>%
-  group_by(SampleID, Sample, Project, SampleType, RepVolume_m3, StainDate, DateCounted, StainType) %>%
-  summarise(
-    median_spores.FOV = median(TotalCells_LBcorr),
-    mean_spores.FOV = mean(TotalCells),
-    sd_spores.FOV = sd(TotalCells),
-    total_median_spores.filter = median_spores.FOV*FOV100x.filter,
-    total_mean_spores.filter = mean_spores.FOV*FOV100x.filter,
-    Live.Dead = mean(LiveCells.TotalCells)
-  ) %>% ungroup %>%
-  mutate(
-    total_median_spores.m3 = total_median_spores.filter/RepVolume_m3
-    )
-    
 # Total spore model for ambient versus smoke with mixing ratio
 #----------------------------------------------------------------------------------------------------
+
 ggplot(spores_blue_pa, aes(x = SmokeLevel, y = MedianMR)) +
   geom_boxplot() +
   geom_jitter(width = 0.2, alpha = 0.5) +
   theme_bw()
 
-spores_blue_pa <- spores_blue_pa %>%
-  filter(SampleID != "B1B")
-
-unique(spores_blue_pa$SampleID)
-
-TotalSpores_m <- glmmTMB(TotalSpores_LBcorr ~ SmokeLevel*MedianMR + offset(log_volume_offset_m3) + 
-                          (1|SampleID),
-                        family=tweedie(link="log"), data = spores_blue_pa, ziformula = ~0)
+TotalSpores_m <- glmmTMB(TotalSpores ~ SmokeLevel + offset(log_volume_offset_m3) + 
+                           offset(log1TotalSpores_LB) + (1|SampleID) + (1|LB_Batch),
+                        family=nbinom2(link="log"), dispformula = ~SmokeLevel, data = spores_blue_pa_C, ziformula = ~0)
 summary(TotalSpores_m)
+
 
 
 TotalSpores_m <- glmmTMB(TotalSpores ~ SmokeLevel*poly(MedianMR, 2) + offset(log_volume_offset_m3) + offset(log1TotalSpores_LB) + 
                            (1|LB_Batch:SampleID),
                          family=nbinom2(link="log"), data = spores_blue_pa, ziformula = ~0)
 summary(TotalSpores_m)
+
 
 simulationOutput <- simulateResiduals(fittedModel = TotalSpores_m, plot = F)
 plotQQunif(simulationOutput)
@@ -251,7 +116,7 @@ write.csv(smoke_spores_pa_C, './Output/K4_SmokeSpores.csv', row.names = F)
 
 model_logPM <- glmmTMB(TotalSpores ~ logPM25 + MedianMCE + MedianMR + 
                          logPM25:MedianMCE + logPM25:MedianMR +
-                         offset(log_volume_offset_m3) + offset(log1TotalSpores_LB) + (1|Sample),
+                         offset(log_volume_offset_m3) + offset(log1TotalSpores_LB) + (1|SampleID),
                        family=nbinom2(link="log"), data = smoke_spores_pa_C)
 
 summary(model_logPM)
@@ -278,29 +143,7 @@ FOV_diam100x <- 0.2 ##mm
 FOV100x_area <- ((FOV_diam100x/2)^2)*pi ##mm^2
 FOV100x.filter <- Filter_area/FOV100x_area ##FoVs/filter
 
-SampleInfo <- read.csv('./Input_Data/FASMEE23/FASMEE_Sample_Info20250329.csv', header = T)
 
-SampleInfo <- SampleInfo %>%
-  mutate(DATE_UTC = mdy(DATE_UTC, tz = 'MST7MDT'),
-         DATE_UTC = ymd(DATE_UTC),
-         SampleStart_UTC = ymd_hms(paste(DATE_UTC, SampleStart_UTC), tz = 'UTC'),
-         SampleEnd_UTC = ymd_hms(paste(DATE_UTC, SampleEnd_UTC), tz = 'UTC'),
-         DateTime_MDT = mdy_hm(DateTime_MDT, tz = 'MST7MDT'),
-         DateTime_UTC =  mdy_hm(DateTime_UTC, tz = 'UTC'))
-
-CellSamples <- SampleInfo %>%
-  filter(FilterType == 'PTFE', SampleType == 'Smoke' | SampleType == 'Ambient') %>%
-  mutate(SampleRep = str_extract(SampleID, ".$"),
-         Sample = str_extract(SampleID, "\\d+"))%>%
-  filter(SampleRep == "B")
-
-blue_info <- SampleInfo %>%
-  filter(Platform == 'Blue',
-         FilterType == 'PTFE') %>%
-  mutate(SampleRep = str_extract(SampleID, ".$"),
-         Sample = str_extract(SampleID, "\\d+")) %>%
-  filter(SampleRep == "A") %>%
-  mutate(int = seq(1, by = 2, length.out = n()))
 
 cells <- read.csv('./Input_Data/FASMEE23/Cell_Counts_FASMEE23_20250414.csv', header = T)
 

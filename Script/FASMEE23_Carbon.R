@@ -12,49 +12,11 @@
 
 library(tidyverse)
 
-SampleInfo <- read.csv('./Input_Data/FASMEE23/FASMEE_Sample_Info20250329.csv', header = T)
-
-SampleInfo <- SampleInfo %>%
-  mutate(DATE_UTC = mdy(DATE_UTC, tz = 'MST7MDT'),
-         DATE_UTC = ymd(DATE_UTC),
-         SampleStart_UTC = ymd_hms(paste(DATE_UTC, SampleStart_UTC), tz = 'UTC'),
-         SampleEnd_UTC = ymd_hms(paste(DATE_UTC, SampleEnd_UTC), tz = 'UTC'),
-         DateTime_MDT = mdy_hm(DateTime_MDT, tz = 'MST7MDT'),
-         DateTime_UTC =  mdy_hm(DateTime_UTC, tz = 'UTC')) 
-
-blue_ints <- SampleInfo %>%
-  filter(Platform == 'Blue',
-         Sampler == 'Button' | Sampler == 'CO_CO2') %>%
-  mutate(SampleRep = str_extract(SampleID, ".$"),
-         Sample = str_extract(SampleID, "\\d+")) %>%
-  filter(SampleRep == "A") %>%
-  mutate(int = seq(1, by = 2, length.out = n()))
-
-blue_quartz <- SampleInfo %>%
-  filter(Platform == 'Blue',
-         FilterType == 'Quartz') %>%
-  mutate(SampleRep = str_extract(SampleID, ".$"),
-         Sample = as.numeric(str_extract(SampleID, "\\d+")),
-         Volume_m3 = Volume_L/1000
-         ) 
-
-blue_ints_seq <- pivot_longer(blue_ints, cols = c('SampleStart_UTC', 'SampleEnd_UTC'), names_to = 'StartStop', values_to = 'Time_UTC')
-
 
 head = read.table('./Input_Data/FASMEE23/FASMEE_Carbon/HEADER.txt', header = FALSE, sep = ",", fill = TRUE) %>%
   filter(!row_number() %in% 1)  
 head = as.data.frame(t(head))
 
-# data = read.table('./FASMEE_Carbon/B10B11B12.txt', header = FALSE, sep = ',', fill = TRUE, col.names = head$V1) 
-# 
-# data <- data %>%
-#   filter(!row_number() %in% c(1,2,3,4)) %>%
-#   mutate(GPS_Date_Time_.GMT. = mdy_hms(GPS_Date_Time_.GMT., tz = 'UTC')) %>%
-#   filter(!is.na(GPS_Date_Time_.GMT.)) %>%
-#   filter(GPS_Date_Time_.GMT. >= ymd_hms("2023-10-10 21:00:00", tz = "UTC")) %>%
-#   mutate(GPS_Date_Time_.GMT. = format(GPS_Date_Time_.GMT., "%m/%d/%y %H:%M:%S"))
-# 
-# write.table(data, './FASMEE_Carbon/Data/B10B11B12_updated.txt', row.names = F, col.names = F, sep = ',')
 
 #list of csv files that represent each sample--taken from "EPA_Carbon_Data_Request_JA.xlsx"
 FASMEE_CO_CO2_files <- list.files('./Input_Data/FASMEE23/FASMEE_Carbon/Data/', pattern="\\.txt$", full.names = T)
@@ -223,10 +185,10 @@ FASMEE_corr_CO_CO2 <- FASMEE_corr_CO_CO2 %>%
                             ~ (1.812043*CO2_.ppm.) - 55.479465))
 
 samples_FASMEE_CO_CO2 <- FASMEE_corr_CO_CO2 %>%
-  mutate(int = findInterval(FASMEE_CO_CO2$GPS_Date_Time_.GMT., blue_ints_seq$Time_UTC)) %>%
+  mutate(int = findInterval(FASMEE_CO_CO2$GPS_Date_Time_.GMT., blue_carbon_ints_seq$Time_UTC)) %>%
   filter(int %% 2 == 1)
 
-samples_FASMEE_CO_CO2 <- left_join(samples_FASMEE_CO_CO2, blue_ints, join_by(int))
+samples_FASMEE_CO_CO2 <- left_join(samples_FASMEE_CO_CO2, blue_carbon_ints, join_by(int))
 
 unique(samples_FASMEE_CO_CO2$SampleID)
 

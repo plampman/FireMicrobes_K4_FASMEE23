@@ -12,27 +12,6 @@
 
 library(tidyverse)
 
-SampleInfo <- read.csv('./Input_Data/FASMEE23/FASMEE_Sample_Info20250329.csv', header = T)
-
-SampleInfo <- SampleInfo %>%
-  mutate(DATE_UTC = mdy(DATE_UTC, tz = 'MST7MDT'),
-         DATE_UTC = ymd(DATE_UTC),
-         SampleStart_UTC = ymd_hms(paste(DATE_UTC, SampleStart_UTC), tz = 'UTC'),
-         SampleEnd_UTC = ymd_hms(paste(DATE_UTC, SampleEnd_UTC), tz = 'UTC'),
-         DateTime_MDT = mdy_hm(DateTime_MDT, tz = 'MST7MDT'),
-         DateTime_UTC =  mdy_hm(DateTime_UTC, tz = 'UTC')) 
-
-
-blue_ints <- SampleInfo %>%
-  filter(Platform == 'Blue',
-         FilterType == 'PTFE') %>%
-  mutate(SampleRep = str_extract(SampleID, ".$"),
-         Sample = str_extract(SampleID, "\\d+")) %>%
-  filter(SampleRep == "A") %>%
-  mutate(int = seq(1, by = 2, length.out = n()))
-
-blue_ints_seq <- pivot_longer(blue_ints, cols = c('SampleStart_UTC', 'SampleEnd_UTC'), names_to = 'StartStop', values_to = 'Time_UTC')
-
 
 PA_files <- list.files('./Input_Data/FASMEE23/Blue_PA/', pattern="\\.csv$", full.names = T)
 
