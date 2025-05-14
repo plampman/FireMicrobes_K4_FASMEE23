@@ -12,28 +12,6 @@
 
 library(tidyverse)
 
-#AirLite (total carbon) pump intervals and volume
-AL_ints <- read.csv('./Input_Data/Konza4/K4_AirLite_Intervals.csv', stringsAsFactors = FALSE, header = T)
-
-AL_ints <- AL_ints %>%
-  mutate(
-    Start_DateTime_cdt = ymd_hms(Start_DateTime_cdt, tz = "America/Chicago"),
-    Stop_DateTime_cdt = ymd_hms(Stop_DateTime_cdt, tz = "America/Chicago"),
-    duration_min = as.numeric(Stop_DateTime_cdt - Start_DateTime_cdt),
-    Volume_L = duration_min * AL_FlowRate_L.min,
-    Volume_m3 = Volume_L/1000)
-
-#Leland pump intervals associated with microbial samples for carbon quantification
-leland_ints <- read.csv('./Input_Data/Konza4/K4_Leland_Intervals.csv', stringsAsFactors = FALSE, header = T)
-leland_ints <- leland_ints %>%
-  mutate(int = seq(1, by = 2, length.out = n()))
-
-leland_ints_seq <- pivot_longer(leland_ints, 
-                                 cols = c('Start_DateTime_cdt', 'Stop_DateTime_cdt'), 
-                                 names_to = 'Start_Stop', values_to = 'time_cdt')
-leland_ints_seq <- leland_ints_seq %>%
-  mutate(time_cdt = ymd_hms(time_cdt, tz = "America/Chicago"))%>%
-  mutate(int = rep(seq(1, by = 2, length.out = ceiling(n()/2)), each = 2))
 
 #list of csv files that represent each sample--taken from "EPA_Carbon_Data_Request_JA.xlsx"
 epa_C_files <- list.files('./Input_Data/Konza4/Carbon/Carbon_csv/EPA_smoke/', pattern="\\.csv$", full.names = T)
@@ -54,7 +32,6 @@ epa_C <- do.call(rbind, all_epa_C)
 epa_C <- epa_C %>%
   mutate(DateTime_cdt = ymd_hms(DateTime_cdt, tz = "America/Chicago")) %>%
   arrange(DateTime_cdt)
-
 
 Temp20240408 <- read.csv('./Input_Data/Konza4/Carbon/Temp20240408.csv', header = T)
 
