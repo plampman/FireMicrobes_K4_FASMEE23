@@ -134,4 +134,4 @@ p1 <- p1 +
 
 print(p1)
 
-ggsave("./Output/Output_figs/K4/SporeSmokeLevel_model_predictions.png", p1, dpi = 600, width = 4.5, height = 4.5)
+ggsave("./Output/Output_figs/K4/K4_SporeSmokeLevel_model_predictions.png", p1, dpi = 600, width = 4.5, height = 4.5)
