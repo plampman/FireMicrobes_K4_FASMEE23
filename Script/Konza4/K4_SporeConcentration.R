@@ -14,12 +14,12 @@ library(tidyverse)
 
 Filter_diam <- 17 ##mm (Obtained from staining tower diameter)
 Filter_area <- ((Filter_diam/2)^2)*pi ##mm^2
-FOV_diam100x <- 0.2 ##mm
-FOV100x_area <- ((FOV_diam100x/2)^2)*pi ##mm^2
-FOV100x.filter <- Filter_area/FOV100x_area ##FoVs/filter
+FOV_diam1000x <- 0.2 ##mm
+FOV1000x_area <- ((FOV_diam1000x/2)^2)*pi ##mm^2
+FOV1000x.filter <- Filter_area/FOV1000x_area ##FoVs/filter
 
-FOV100x_40_area = FOV100x_area * 40
-scaling_1000x = Filter_area/FOV100x_40_area
+FOV1000x_40_area = FOV1000x_area * 40
+scaling_1000x = Filter_area/FOV1000x_40_area
 
 
 spores <- read_csv('./Input_Data/Konza4/Konza4_SporeCounts_1000X_20250513.csv') %>%
@@ -59,14 +59,13 @@ spores <- spores %>%
   mutate(
     log1TotalSpores_LB = log1p(TotalSpores_LB),
     TotalSpores_LBcorr = pmax(0, TotalSpores - TotalSpores_LB),
-    TotalSpores.filter_LBcorr = TotalSpores_LBcorr*FOV100x.filter,
+    TotalSpores.filter_LBcorr = TotalSpores_LBcorr*FOV1000x.filter,
     TotalSpores_LBcorr_m3 = TotalSpores.filter_LBcorr/RepVolume_m3,
     log_volume_offset_m3 = if_else(SampleType == "Smoke" | SampleType == "Ambient", log(RepVolume_m3), 0)) 
 
 
 spores_stat_test <- spores %>%
   filter(SampleType == "Ambient" | SampleType == "Smoke") %>%
-  #filter(Sample != '14A') %>%
   mutate(
     SampleType = factor(SampleType),
     Unit = factor(Unit),
