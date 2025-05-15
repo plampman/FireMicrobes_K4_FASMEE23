@@ -6,39 +6,35 @@
 ###
 ### Author: Phinehas Lampman, plampman@uidaho.edu
 ###
-### Last modified: 04/06/2025
+### Last modified: 05/15/2025
 ###
 #########################################################################
 
+### Run Konza4_Metadata.R, K4_PA.R, K4_Carbon.R, and K4_SporeConcentration.R first
+
+
 library(tidyverse)
 library(emmeans)
-library(lme4)
-library(nlme)
+#library(lme4)
+#library(nlme)
 library(glmmTMB)
 library(DHARMa)
 # library(mgcv)
 # library(vegan)
-library(ggstatsplot)
+#library(ggstatsplot)
 
 #Konza 4 Fungi
 #--------------------------------------------------------------------------------------
 
 
-# TotalSpores_m <- glmmTMB(TotalSpores_LBcorr ~ SmokeLevel + MedianMR +
-#                            offset(log_volume_offset_m3) + (1|Sample),
-#                          family=tweedie(link="log"), data = spores_pa_C, ziformula = ~0)
-# summary(TotalSpores_m)
-
-TotalSpores_m <- glmmTMB(TotalSpores ~ SmokeLevel + MedianMR + 
-                           offset(log_volume_offset_m3) + offset(log1TotalSpores_LB) + (1|SampleID),
-                         family=nbinom2(link="log"), dispformula = ~SmokeLevel, data = spores_pa_C, ziformula = ~0)
+TotalSpores_m <- glmmTMB(TotalSpores_LBcorr_m3 ~ SmokeLevel + (1|SampleID) + (1|RepVolume_m3),
+                         family=tweedie(link="log"), data = spores_pa_C, ziformula = ~0)
 summary(TotalSpores_m)
 
 simulationOutput <- simulateResiduals(fittedModel = TotalSpores_m, plot = F)
 plotQQunif(simulationOutput)
 plotResiduals(simulationOutput)
 testQuantiles(simulationOutput)
-
 
 em <- emmeans(TotalSpores_m, ~ SmokeLevel, type = "response")
 # View the predicted means
@@ -83,9 +79,6 @@ simulationOutput <- simulateResiduals(fittedModel = model_logPM, plot = F)
 plotQQunif(simulationOutput)
 plotResiduals(simulationOutput)
 testQuantiles(simulationOutput)
-
-
-
 
 
 # Total cell hurdle model for smoke level
@@ -144,3 +137,10 @@ pairs(emmeans(spore_glm, ~ SampleType, type = "response"), reverse = TRUE, infer
 
 spores_pm <- spores_pm %>%
   filter(if_all(everything(), ~ !is.na(.)))
+
+TotalSpores_m <- glmmTMB(TotalSpores ~ SmokeLevel + 
+                           offset(log_volume_offset_m3) + offset(log1TotalSpores_LB) + (1|SampleID),
+                         family=nbinom2(link="log"), data = spores_pa_C, ziformula = ~0)
+summary(TotalSpores_m)
+
+
