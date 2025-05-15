@@ -18,7 +18,7 @@ library(emmeans)
 ### First plot showing spores vs. smoke level - Run K4_Models.R
 #---------------------------------------------------------------------------------------
 
-model_predictions <- as.data.frame(summary(em, infer = TRUE))
+model_predictions <- as.data.frame(summary(em_spores_SmokeLevel, infer = TRUE))
 
 model_predictions <- model_predictions %>%
   rename(
@@ -61,7 +61,7 @@ p1 <- ggplot() +
          color = guide_legend(override.aes = list(size = 3))) +
   theme_bw()
 
-contrast_df <- as.data.frame(summary(contrasts_ratio, infer = TRUE))
+contrast_df <- as.data.frame(summary(contrasts_ratio_spores_SmokeLevel, infer = TRUE))
 
 smoke_levels <- c("None" = 1, "Low" = 2, "Moderate" = 3, "High" = 4)
 

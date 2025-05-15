@@ -27,22 +27,22 @@ library(DHARMa)
 #--------------------------------------------------------------------------------------
 
 
-TotalSpores_m <- glmmTMB(TotalSpores_LBcorr_m3 ~ SmokeLevel + (1|SampleID) + (1|RepVolume_m3),
+TotalSpores_SmokeLevel <- glmmTMB(TotalSpores_LBcorr_m3 ~ SmokeLevel + (1|SampleID) + (1|RepVolume_m3),
                          family=tweedie(link="log"), data = spores_pa_C, ziformula = ~0)
-summary(TotalSpores_m)
+summary(TotalSpores_SmokeLevel)
 
-simulationOutput <- simulateResiduals(fittedModel = TotalSpores_m, plot = F)
+simulationOutput <- simulateResiduals(fittedModel = TotalSpores_SmokeLevel, plot = F)
 plotQQunif(simulationOutput)
 plotResiduals(simulationOutput)
 testQuantiles(simulationOutput)
 
-em <- emmeans(TotalSpores_m, ~ SmokeLevel, type = "response")
+em_spores_SmokeLevel <- emmeans(TotalSpores_SmokeLevel, ~ SmokeLevel, type = "response")
 # View the predicted means
-summary(em, infer = T)
+summary(em_spores_SmokeLevel, infer = T)
 
 # Convert to ratios instead of differences
-contrasts_ratio <- contrast(em, method = "trt.vs.ctrl", ref = "None", type = "response")
-summary(contrasts_ratio, infer = TRUE)
+contrasts_ratio_spores_SmokeLevel <- contrast(em_spores_SmokeLevel, method = "trt.vs.ctrl", ref = "None", type = "response")
+summary(contrasts_ratio_spores_SmokeLevel, infer = TRUE)
 
 #No adjustment for multiple comparisons with p-values
 contrasts_ratio_noadj <- contrast(em, method = "trt.vs.ctrl", ref = "None", type = "response")
