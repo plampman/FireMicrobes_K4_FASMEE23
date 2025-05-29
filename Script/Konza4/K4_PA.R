@@ -76,24 +76,45 @@ PA_stats_k4 <- samples_k4 %>%
 
 PA_stats_k4 <- PA_stats_k4 %>%
   mutate(
-    SmokeLevel = case_when(
-      MedianPM2.5_ug.m3 < 20 ~ "None",
-      MedianPM2.5_ug.m3 >= 20 & MedianPM2.5_ug.m3 < 350 ~ "Low",
-      MedianPM2.5_ug.m3 >= 350 & MedianPM2.5_ug.m3 < 700 ~ "Moderate",
-      MedianPM2.5_ug.m3 >= 700 ~ "High",
-      TRUE ~ NA_character_),
-    SmokeLevel = factor(SmokeLevel, levels = c("None", "Low", "Moderate", "High")),
-    AQI_Intervals = case_when(
-      MedianPM2.5_ug.m3 <= 9 ~ "None",
-      MedianPM2.5_ug.m3 > 9 & MedianPM2.5_ug.m3 <= 35.4 ~ "Moderate",
-      MedianPM2.5_ug.m3 > 35.4 & MedianPM2.5_ug.m3 <= 55.4 ~ "UnhealthySensitive",
-      MedianPM2.5_ug.m3 > 55.4 & MedianPM2.5_ug.m3 < 125.4 ~ "Unhealthy",
-      MedianPM2.5_ug.m3 > 125.4 & MedianPM2.5_ug.m3 < 225.4 ~ "VeryUnhealthy",
+    logPM2.5 = log(MedianPM2.5_ug.m3),
+    AQI_PM2.5 = case_when( # AGI levels (using PM concentration) https://www.airnow.gov/aqi/aqi-calculator/
+      MedianPM2.5_ug.m3 <= 9 ~ "Good",
+      MedianPM2.5_ug.m3 > 9 & MedianPM2.5_ug.m3 <= 125.4 ~ "Moderate/Unhealthy",
+      MedianPM2.5_ug.m3 > 125.4 & MedianPM2.5_ug.m3 < 225.4 ~ "Very Unhealthy",
       MedianPM2.5_ug.m3 >= 225.4 ~ "Hazardous",
       TRUE ~ NA_character_),
-    AQI_Intervals = factor(AQI_Intervals, 
-                           levels = c("None", "Moderate", "UnhealthySensitive", 
-                                      "Unhealthy", "VeryUnhealthy", "Hazardous")))
+    AQI_PM2.5 = factor(AQI_PM2.5, 
+                       levels = c("Good", "Moderate/Unhealthy", "Very Unhealthy", "Hazardous")))
+
+
+# Different "smoke levels"
+
+# Created for our sample pm2.5 distribution (works well with all of our data so far)
+#-------------------------------------------------------------------------------------
+# SmokeLevel = case_when(
+#   MedianPM2.5_ug.m3 < 20 ~ "None",
+#   MedianPM2.5_ug.m3 >= 20 & MedianPM2.5_ug.m3 < 350 ~ "Low",
+#   MedianPM2.5_ug.m3 >= 350 & MedianPM2.5_ug.m3 < 700 ~ "Moderate",
+#   MedianPM2.5_ug.m3 >= 700 ~ "High",
+#   TRUE ~ NA_character_),
+# SmokeLevel = factor(SmokeLevel, levels = c("None", "Low", "Moderate", "High")))
+#------------------------------------------------------------------------------------
+# EPA PM2.5 to AQI thresholds
+#------------------------------------------------------------------------------------
+# AQI_Intervals = case_when(
+#   MedianPM2.5_ug.m3 <= 9 ~ "None",
+#   MedianPM2.5_ug.m3 > 9 & MedianPM2.5_ug.m3 <= 35.4 ~ "Moderate",
+#   MedianPM2.5_ug.m3 > 35.4 & MedianPM2.5_ug.m3 <= 55.4 ~ "UnhealthySensitive",
+#   MedianPM2.5_ug.m3 > 55.4 & MedianPM2.5_ug.m3 < 125.4 ~ "Unhealthy",
+#   MedianPM2.5_ug.m3 > 125.4 & MedianPM2.5_ug.m3 < 225.4 ~ "VeryUnhealthy",
+#   MedianPM2.5_ug.m3 >= 225.4 ~ "Hazardous",
+#   TRUE ~ NA_character_),
+# AQI_Intervals = factor(AQI_Intervals, 
+#                        levels = c("None", "Moderate", "UnhealthySensitive", 
+#                                   "Unhealthy", "VeryUnhealthy", "Hazardous")))
+
+
+
     
 
 
