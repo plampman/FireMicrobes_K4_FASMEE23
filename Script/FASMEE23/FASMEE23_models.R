@@ -12,255 +12,195 @@
 
 library(tidyverse)
 library(emmeans)
-library(lme4)
-library(nlme)
+#library(lme4)
+#library(nlme)
 library(glmmTMB)
 library(DHARMa)
-library(mgcv)
+library(tweedie)
+library(splines)
+# library(mgcv)
 # library(vegan)
-library(ggstatsplot)
+#library(ggstatsplot)
 
+
+summary(spores_pa_C)
 
 ### FASMEE Spores
+
+smoke_spores <- spores_pa_C %>%
+  filter(Platform == "Blue" & SampleType == "Smoke")
 
 # Total spore model for ambient versus smoke with mixing ratio
 #----------------------------------------------------------------------------------------------------
 
-ggplot(spores_blue_pa, aes(x = SmokeLevel, y = MedianMR)) +
-  geom_boxplot() +
-  geom_jitter(width = 0.2, alpha = 0.5) +
-  theme_bw()
+# Smoke vs. Ambient model
+#---------------------------------------------------------------------------------------------------------------------------------
 
-TotalSpores_m <- glmmTMB(TotalSpores ~ SmokeLevel + offset(log_volume_offset_m3) + 
-                           offset(log1TotalSpores_LB) + (1|SampleID) + (1|LB_Batch),
-                        family=nbinom2(link="log"), dispformula = ~SmokeLevel, data = spores_blue_pa_C, ziformula = ~0)
-summary(TotalSpores_m)
+tweedie_profile <- tweedie.profile(
+  TotalSpores_FBLBcorr.m3 ~ SampleType,
+  data = spores_pa_C,
+  method = "series",     
+  do.plot = TRUE,        
+  p.vec = seq(1.1, 1.8, by = 0.05)  # typical range: 1 < p < 2
+)
 
-
-
-TotalSpores_m <- glmmTMB(TotalSpores ~ SmokeLevel*poly(MedianMR, 2) + offset(log_volume_offset_m3) + offset(log1TotalSpores_LB) + 
-                           (1|LB_Batch:SampleID),
-                         family=nbinom2(link="log"), data = spores_blue_pa, ziformula = ~0)
-summary(TotalSpores_m)
+tweedie_profile$p.max
 
 
-simulationOutput <- simulateResiduals(fittedModel = TotalSpores_m, plot = F)
+power <- 1.33
+psi <- qlogis(power - 1.0)
+
+SmokeAmbient_model <- glmmTMB(TotalSpores_FBLBcorr.m3 ~ SampleType + (1|SampleID) + (1|LB_Batch),
+                              family=tweedie(link="log"), data = spores_pa_C, 
+                              ziformula = ~-1, dispformula = ~SampleType)
+summary(SmokeAmbient_model)
+
+family_params(SmokeAmbient_model)
+
+simulationOutput <- simulateResiduals(fittedModel = SmokeAmbient_model, plot = F)
+plotQQunif(simulationOutput)
+plotResiduals(simulationOutput)
+
+#Smoke model
+#---------------------------------------------------------------------------------------------------------------------------------
+
+smoke_spore_stats <- smoke_spores %>%
+  group_by(SampleID, LB_Batch) %>%
+  summarise(
+    RH = mean(MeanRH),
+    PM2.5 = mean(MedianPM2.5_ug.m3),
+    Temp = mean(MeanTemp_C),
+    FOVs = n(),
+    NAFOVs = sum(is.na(FOV)),
+    Bcorr_spores = mean(TotalSpores_Bcorr),
+    Bcorr_spores_med = median(TotalSpores_Bcorr),
+    volume = mean(RepVolume_L),
+    MCE = mean(MeanMCE)
+  )
+
+tweedie_profile <- tweedie.profile(
+  TotalSpores_Bcorr.m3 ~ logPM2.5 + MaxTemp_C + MeanRH,
+  data = smoke_spores,
+  method = "series",     
+  do.plot = TRUE,        
+  p.vec = seq(1.1, 1.8, by = 0.05)  # typical range: 1 < p < 2
+)
+
+tweedie_profile$p.max
+
+
+power <- 1.44
+psi <- qlogis(power - 1.0)
+
+Smoke_model <- glmmTMB(TotalSpores_Bcorr.m3 ~ logPM2.5 + MeanRH + MaxTemp_C + (1|SampleID) + (1|LB_Batch),
+                       family=tweedie(link="log"), data = smoke_spores, 
+                       ziformula = ~-, dispformula = ~logPM2.5) #start = list(psi = psi), map = list(psi = factor(NA)))
+summary(Smoke_model)
+
+family_params(Smoke_model)
+
+simulationOutput <- simulateResiduals(fittedModel = Smoke_model, plot = F)
 plotQQunif(simulationOutput)
 plotResiduals(simulationOutput)
 testQuantiles(simulationOutput)
 
 
-# Create a grid of MedianMR values covering your observed range (assuming 3.0-3.8)
-mr_seq <- seq(3.0, 3.8, by = 0.2)
 
-# Get predicted values at each combination of SmokeLevel and MedianMR
-em_interact <- emmeans(TotalSpores_m, 
-                       ~ SmokeLevel | MedianMR, 
-                       at = list(MedianMR = mr_seq),
-                       type = "response")
+# Emission model
+#----------------------------------------------------------------------------------------------------
 
-# View the results
-summary(em_interact)
+emission_spores <- smoke_spores %>% filter(!is.na(MeanMCE)) 
 
-# Create contrasts between smoke levels at each MedianMR value
-contrasts_by_mr <- contrast(em_interact, 
-                            method = "trt.vs.ctrl", 
-                            ref = "None", 
-                            by = "MedianMR", 
-                            adjust = "none")  # No adjustment within each MR value
+ggplot(emission_spores, aes(x = MeanMCE, y = spores.kg, color = SampleID)) +
+  geom_point(size = 3) +
+  geom_smooth(method = "loess", se = FALSE, aes(group = 1)) +
+  theme_minimal()
 
-summary(contrasts_by_mr, infer = TRUE)
 
-#Spore hurdle model
-#-----------------------------------------------------------------------------------
+tweedie_profile <- tweedie.profile(
+  spores.kg ~ poly(MeanMCE, 2),
+  data = emission_spores,
+  method = "series",     
+  do.plot = TRUE,        
+  p.vec = seq(1.1, 1.9, by = 0.01)  # typical range: 1 < p < 2
+)
 
-presence_model <- glmmTMB(presence ~ SmokeLevel+MedianMR + 
-                            (1|LB_Batch:SampleID),
-                          family = binomial(link = "logit"), 
-                          data = spores_blue_pa)
-summary(presence_model)
+tweedie_profile$p.max
 
-positive_only <- subset(spores_blue_pa, TotalSpores_LBcorr > 0)
+power <- 1.69
+psi <- qlogis(power - 1.0)
+emission_model <- glmmTMB(spores.kg ~ poly(MeanMCE, 2) + (1|SampleID),
+                          family=tweedie(link="log"), data = emission_spores, 
+                          ziformula = ~-1, 
+                          dispformula = ~ poly(MeanMCE, 2),
+                          start = list(psi = psi), map = list(psi = factor(NA)))
+summary(emission_model)
 
-# Fit a model for positive values only
-positive_model <- glmmTMB(TotalSpores_LBcorr ~ SmokeLevel+MedianMR + 
-                            offset(log_volume_offset_m3) + 
-                            (1|Sample),
-                          family = Gamma(link = "log"), 
-                          data = positive_only)
-summary(positive_model)
+family_params(emission_model)
 
-simulationOutput <- simulateResiduals(fittedModel = positive_model, plot = F)
+simulationOutput <- simulateResiduals(fittedModel = emission_model, plot = F)
 plotQQunif(simulationOutput)
 plotResiduals(simulationOutput)
-testDispersion(TotalCells_m)
+testQuantiles(simulationOutput)
 
 
-# Spore smoke model
-#-------------------------------------------------------------------------------------
+library(ggeffects)
 
-smoke_spores_pa_C <- spores_blue_pa_C %>% 
-  filter(SampleType == "Smoke") 
+# Get predictions
+pred <- ggpredict(emission_model, terms = "MeanMCE [all]")
 
-smoke_spores_pa_C$logPM25 <- log(smoke_spores_pa_C$MedianPM2.5_ug.m3)
-smoke_spores_pa_C$logPM10 <- log(smoke_spores_pa_C$MedianPM10_ug.m3)
-smoke_spores_pa_C$logPM1<- log(smoke_spores_pa_C$MedianPM1.0_ug.m3)
+# Plot
+p <- ggplot(emission_spores, aes(x = MeanMCE, y = spores.kg)) +
+  geom_point(aes(color = SampleID), alpha = 0.6, size = 2) +
+  geom_ribbon(data = pred, aes(x = x, y = predicted, 
+                               ymin = conf.low, ymax = conf.high),
+              alpha = 0.2, inherit.aes = FALSE) +
+  geom_line(data = pred, aes(x = x, y = predicted), 
+            size = 1.2, color = "blue", inherit.aes = FALSE) +
+  scale_y_continuous(trans = "log10", 
+                     breaks = c(1e0, 1e2, 1e4, 1e6, 1e8),
+                     labels = scales::scientific) +
+  theme_minimal() +
+  theme(legend.position = "right") +
+  labs(x = "Mean MCE", 
+       y = expression(paste("Spores kg"^-1)),
+       title = "Non-linear relationship between MCE and spore emission")
 
-write.csv(smoke_spores_pa_C, './Output/K4_SmokeSpores.csv', row.names = F)
-
-
-# model_logPM <- glmmTMB(TotalSpores_LBcorr ~ logPM25*MedianMCE + MedianMR +
-#                          offset(log_volume_offset_m3) + (1|Sample),
-#                        family=tweedie(link="log"), data = smoke_spores_pa_C)
-# summary(model_logPM)
-
-model_logPM <- glmmTMB(TotalSpores ~ logPM25 + MedianMCE + MedianMR + 
-                         logPM25:MedianMCE + logPM25:MedianMR +
-                         offset(log_volume_offset_m3) + offset(log1TotalSpores_LB) + (1|SampleID),
-                       family=nbinom2(link="log"), data = smoke_spores_pa_C)
-
-summary(model_logPM)
-
-model_logPM <- glmmTMB(TotalSpores_LBcorr ~ logPM25 + MedianMCE + MedianMR +
-                         logPM25:MedianMCE + logPM25:MedianMR +
-                         offset(log_volume_offset_m3) + (1|Sample),
-                       family=tweedie(link="log"), data = smoke_spores_pa_C)
-
-summary(model_logPM)
-
-simulationOutput <- simulateResiduals(fittedModel = model_logPM, plot = F)
-plotQQunif(simulationOutput)
-plotResiduals(simulationOutput)
+print(p)
 
 
 
 ########### FASMEE Bacteria ###########################################################
 #######################################################################################
 
-Filter_diam <- 17 ##mm (Obtained from staining tower diameter)
-Filter_area <- ((Filter_diam/2)^2)*pi ##mm^2
-FOV_diam100x <- 0.2 ##mm
-FOV100x_area <- ((FOV_diam100x/2)^2)*pi ##mm^2
-FOV100x.filter <- Filter_area/FOV100x_area ##FoVs/filter
-
-
-
-cells <- read.csv('./Input_Data/FASMEE23/Cell_Counts_FASMEE23_20250414.csv', header = T)
-
-bacteria <- cells %>%
-  filter(StainType == 'S9PI') %>%
-  rename(SampleID = 'SlideID') %>%
-  mutate(SampleID = if_else(SampleType != "LabBlank" & SampleType != "FieldBlank", gsub("_", "", SampleID), SampleID),
-         SampleID = if_else(SampleType == "FieldBlank", gsub("_A", "", SampleID), SampleID))
-
-bacteria <- bacteria %>%
-  mutate(
-    LB_Batch = as.factor(case_when(
-      StainDate >= 20240503 & StainDate < 20240807 ~ 'A',
-      StainDate >= 20240807 & StainDate < 20241119 ~ 'B',
-      StainDate >= 20241119 & StainDate < 20241210 ~ 'C',
-      ## There were two different TBE solutions with lab blanks from the same stain date, the first set below is TBE1 and second set is TBE2
-      StainDate >= 20241210 & StainDate < 20250205 & SampleID %in% 
-        c("LabBlank1A_A_20241210", "R5B", "R4B", "R3B", "R2B", "R1B", "B3B", "B2B") ~ 'D',
-      StainDate >= 20241210 & StainDate < 20250205 & SampleID %in% 
-        c("LabBlank3A_A_20241210", "B6B", "R6B", "R3B", "R7B", "R9B", "B9B", "R10B") ~ 'E', 
-      StainDate >= 20250205 ~ 'F',
-    )))
-
-bacteria <- left_join(bacteria, SampleInfo, by = "SampleID")
-
-bacteria <- bacteria %>%
-  mutate(
-    Volume_L = if_else(is.na(Volume_L), 0, Volume_L),
-    RepVolume_L = Volume_L/2, # A and B slide replicates (S9PI vs CW/KOH)
-    RepVolume_m3 = RepVolume_L/1000) %>%
-  select(-SampleType.y, -Sampler.y) %>%
-  rename(SampleType = 'SampleType.x', Sampler = 'Sampler.x')
-
-blank_means <- bacteria %>%
-  filter(SampleType == "LabBlank") %>%
-  group_by(LB_Batch) %>%
-  summarise(
-    TotalCells_LB = mean(TotalCells),
-    DeadCells_LB = mean(DEADCounts)
-    ) %>%
-  ungroup
-
-bacteria <- left_join(bacteria, blank_means, by = "LB_Batch")
-
-bacteria <- bacteria %>%
-  filter(SampleType != "LabBlank") %>%
-  mutate(
-    log1TotalCells_LB = log1p(TotalCells_LB),
-    log1TotalCells = log1p(TotalCells),
-    TotalCells_LBcorr = pmax(0, TotalCells - TotalCells_LB),
-    log1TotalCells_LBcorr = log1p(TotalCells_LBcorr),
-    TotalCells.filter_LBcorr = TotalCells_LBcorr*FOV100x.filter,
-    DeadCells_LBcorr = pmax(0, DEADCounts - DeadCells_LB),
-    LiveCells_LBcorr = pmax(0, TotalCells_LBcorr - DeadCells_LBcorr),
-    DeadCells.filter_LBcorr = DeadCells_LBcorr*FOV100x.filter,
-    LiveCells.filter_LBcorr = LiveCells_LBcorr*FOV100x.filter,
-    TotalCells_LBcorr_m3 = TotalCells_LBcorr/RepVolume_m3,
-    DeadCells_LBcorr_m3 = DeadCells_LBcorr/RepVolume_m3,
-    LiveCells_LBcorr_m3 = LiveCells_LBcorr/RepVolume_m3,
-    LiveCells.TotalCells = if_else(LiveCells_LBcorr_m3 > 0, LiveCells_LBcorr_m3/TotalCells_LBcorr_m3, 0),
-    LiveCells.TotalCells_adj = case_when(
-      LiveCells.TotalCells == 0 ~ 0.001,  
-      LiveCells.TotalCells == 1 ~ 0.999,  
-      TRUE ~ LiveCells.TotalCells))
-
-bacteria_stat_test <- bacteria %>%
-  mutate(
-    Platform = if_else(is.na(Platform), "Blank", Platform),
-    SampleType = factor(SampleType),
-    Platform = factor(Platform),
-    Day = factor(Day),
-    log_volume_offset_m3 = if_else(SampleType == "Smoke" | SampleType == "Ambient", log(RepVolume_m3), 0)) %>% 
-  filter(Platform == "Blue" | (Platform == "Red" & SampleType == "Ambient") | Platform == "Blank")
-
-bacteria_blue <- bacteria_stat_test %>%
-  filter(Platform == "Blue") %>%
-  mutate(Sample_num = if_else(Platform == "Blue", str_extract(Sample, "\\d+"), NA_character_),
-         Sample_num = as.numeric(Sample_num))
-
-bacteria_blue_pa <- left_join(bacteria_blue, PA_stats_FASMEE23, by = c('Sample_num' = 'Sample'))
-
-bacteria_blue_pa <- bacteria_blue_pa %>%
-  mutate(
-    presence = TotalCells_LBcorr > 0)
-
-#write.csv(bacteria_blue_pa, 'bacteria_blue_pa_FASMEE20250418.csv', row.names = F)
-    
-
-sample_bacteria_blue <- bacteria_blue  %>%
-  group_by(SampleID, Sample, Project, SampleType, RepVolume_m3, StainDate, DateCounted, StainType) %>%
-  summarise(
-    median_bacteria.FOV = median(TotalCells_LBcorr),
-    mean_bacteria.FOV = mean(TotalCells),
-    sd_bacteria.FOV = sd(TotalCells),
-    total_median_bacteria.filter = median_bacteria.FOV*FOV100x.filter,
-    total_mean_bacteria.filter = mean_bacteria.FOV*FOV100x.filter,
-    Live.Dead = mean(LiveCells.TotalCells)
-  ) %>% ungroup %>%
-  mutate(
-    total_median_bacteria.m3 = total_median_bacteria.filter/RepVolume_m3
-  )
 
 # Total cell model for ambient versus smoke with mixing ratio
 #----------------------------------------------------------------------------------------------------
 
-# TotalCells_m <- glmmTMB(TotalCells_LBcorr ~ SampleType*MedianMR + offset(log_volume_offset_m3) + 
-#                         (1|LB_Batch:SampleID),
-#                       family=tweedie(link="log"), data = bacteria_blue_pa, ziformula = ~SampleType)
-# summary(TotalCells_m)
+bacteria_stat_test <- bacteria_stat_test %>% filter(SampleID != "B1B")
+
+tweedie_profile <- tweedie.profile(
+  TotalCells_FBLBcorr.m3 ~ SampleType,
+  data = bacteria_stat_test,
+  method = "series",     
+  do.plot = TRUE,        
+  p.vec = seq(1.1, 1.9, by = 0.01)  # typical range: 1 < p < 2
+)
+
+tweedie_profile$p.max
+
+family_params(TotalCells_m)
 
 
-TotalCells_m <- glmmTMB(TotalCells ~ SmokeLevel+MedianMR + 
-                          offset(log_volume_offset_m3) + offset(log1TotalCells_LB) +
-                          (1|SampleID),
-                        family=nbinom2(link="log"), dispformula = ~SmokeLevel, 
-                        data = bacteria_blue_pa, ziformula = ~0)
+power <- 1.69
+psi <- qlogis(power - 1.0)
+
+TotalCells_m <- glmmTMB(TotalCells_FBLBcorr.m3 ~ SampleType + (1|SampleID) + (1|LB_Batch) + (1|Platform),
+                      family=tweedie(link="log"), data = bacteria_stat_test, 
+                      ziformula = ~-1, dispformula = ~SampleType)
+                      #start = list(psi = psi), map = list(psi = factor(NA))))
 summary(TotalCells_m)
+
 
 simulationOutput <- simulateResiduals(fittedModel = TotalCells_m, plot = F)
 plotQQunif(simulationOutput)
