@@ -104,7 +104,7 @@ spores_pa <- left_join(spores_stat_test, PA_stats_k4, by = c('Sample_num' = 'Sam
 
 spores_pa_C <- left_join(spores_pa, slim_UI_EPA_C, by = c('Sample_num' = 'Sample')) %>%
   mutate(
-    spores.kg = (TotalSpores_Bcorr.m3/(ALL_carbon_mg.m3/1000))*2,
+    spores.kg = TotalSpores_Bcorr.m3/biomass_kg,
     log1spores.kg = log1p(spores.kg)
   )
 
