@@ -15,18 +15,16 @@
 #Spore counts from Liv Lampman
 
 library(tidyverse)
-library(gridExtra)
-library(ggstatsplot)
 
 
 Filter_diam <- 17 ##mm (Obtained from staining tower diameter)
 Filter_area <- ((Filter_diam/2)^2)*pi ##mm^2
-FOV_diam100x <- 0.2 ##mm
-FOV100x_area <- ((FOV_diam100x/2)^2)*pi ##mm^2
-FOV100x.filter <- Filter_area/FOV100x_area ##FoVs/filter
+FOV_diam1000x <- 0.2 ##mm
+FOV1000x_area <- ((FOV_diam1000x/2)^2)*pi ##mm^2
+FOV1000x.filter <- Filter_area/FOV1000x_area ##FoVs/filter
 
-FOV100x_40_area = FOV100x_area * 40
-scaling_1000x = Filter_area/FOV100x_40_area
+FOV1000x_40_area = FOV1000x_area * 40
+scaling_1000x = Filter_area/FOV1000x_40_area
 
 
 spores <- read_csv('./Input_Data/FASMEE23/FASMEE23_SporeCounts_1000X_20250513.csv') %>%
@@ -61,48 +59,81 @@ blank_means <- spores %>%
   filter(SampleType == "LabBlank") %>%
   group_by(LB_Batch) %>%
   summarise(
-    TotalSpores_LB = mean(TotalSpores)
+    TotalSpores_LB = mean(TotalSpores),
+    log1TotalSpores_LB = log1p(TotalSpores_LB),
   ) %>%
   ungroup
+
 
 spores <- left_join(spores, blank_means, by = "LB_Batch")
 
 spores <- spores %>%
   filter(SampleType != "LabBlank") %>%
   mutate(
-    log1TotalSpores_LB = log1p(TotalSpores_LB),
     TotalSpores_LBcorr = pmax(0, TotalSpores - TotalSpores_LB),
-    TotalSpores.filter_LBcorr = TotalSpores_LBcorr*FOV100x.filter,
-    TotalSpores_LBcorr_m3 = TotalSpores.filter_LBcorr/RepVolume_m3,
+    TotalSpores_FBLBcorr = pmax(0, TotalSpores_LBcorr - FieldBlank_mean$TotalSpores_FB),
     log_volume_offset_m3 = if_else(SampleType == "Smoke" | SampleType == "Ambient", log(RepVolume_m3), 0)) %>% 
   filter(Platform == "Blue" | (Platform == "Red" & SampleType == "Ambient") | Platform == "Blank")
 
-spores_blue <- spores %>%
-  filter(Platform == "Blue") %>%
+FieldBlank_mean <- spores %>%
+  filter(SampleType == "FieldBlank") %>%
+  summarise(
+    TotalSpores_FB = mean(TotalSpores_LBcorr)
+  ) %>%
+  ungroup
+
+spores <- spores %>%
+  filter(SampleType != "FieldBlank") %>%
+  mutate(
+    TotalSpores_FBLBcorr = pmax(0, TotalSpores_LBcorr - FieldBlank_mean$TotalSpores_FB))
+
+Ambient_mean <- spores %>%
+  filter(SampleType == "Ambient") %>%
+  summarise( # Ambient mean for background correction
+    AmbientSpores.FOV = mean(TotalSpores_FBLBcorr)
+  )
+
+spores <- spores %>%
   filter(SampleType != "FieldBlank") %>%
   mutate(Sample_num = if_else(Platform == "Blue", str_extract(SampleID, "\\d+"), NA_character_),
-         Sample_num = as.numeric(Sample_num))
+         Sample_num = as.numeric(Sample_num),
+         TotalSpores.filter = TotalSpores*FOV1000x.filter,
+         TotalSpores.filter_FBLBcorr = TotalSpores_FBLBcorr*FOV1000x.filter,
+         TotalSpores_FBLBcorr.m3 = TotalSpores.filter_FBLBcorr/RepVolume_m3,
+         TotalSpores_Bcorr = if_else(SampleType == "Smoke", pmax(0, TotalSpores_FBLBcorr - Ambient_mean$AmbientSpores.FOV), NA),
+         TotalSpores_Bcorr.m3 = (TotalSpores_Bcorr*FOV1000x.filter)/RepVolume_m3,
+         log_volume_offset_m3 = if_else(SampleType == "Smoke" | SampleType == "Ambient", log(RepVolume_m3), 0)
+         )
 
-spores_blue_pa <- left_join(spores_blue, PA_stats_FASMEE23, by = c('Sample_num' = 'Sample'))
+spores_pa <- left_join(spores, PA_stats_FASMEE23, by = c('Sample_num' = 'Sample'))
 
-spores_blue_pa_C <- left_join(spores_blue_pa, slim_fasmmee_C, by = c('Sample_num' = 'Sample')) %>%
+spores_pa_C <- left_join(spores_pa, slim_fasmmee_C, by = c('Sample_num' = 'Sample')) %>%
   mutate(
     Platform = if_else(is.na(Platform), "Blank", Platform),
     SampleType = factor(SampleType),
     Platform = factor(Platform),
-    SampleID = factor(SampleID))
+    Day = factor(Day),
+    SampleID = factor(SampleID),
+    spores.kg = TotalSpores_Bcorr.m3/biomass_kg)
 
+unique(spores_pa_C$SampleID)
 
-
-unique(spores_blue_pa_C$SampleID)
+na_count <- spores_pa_C %>%
+  summarize(across(everything(), ~sum(is.na(.))))
 
 #write.csv(spores_blue_pa_C, 'FASMEE23_Spores_PA_C_20250501.csv', row.names = F)
 
-sample_spores_blue <- spores_blue_pa_C  %>%
-  group_by(SampleID, SmokeLevel, RepVolume_m3) %>%
+sample_spores <- spores_pa_C  %>%
+  group_by(SampleID, AQI_PM2.5, RepVolume_m3) %>%
   summarise(
+    meanMCE = mean(MeanMCE, na.rm = T),
+    meanlogPM2.5 = mean(logPM2.5),
+    meanMR = mean(MedianMR),
     mean_spores.FOV = mean(TotalSpores),
+    mean_sporesFBLBcorr.FOV = mean(TotalSpores_FBLBcorr),
     sd_spores.FOV = sd(TotalSpores),
-    mean_spores.m3 = mean(TotalSpores_LBcorr_m3),
-    sd_spores.m3 = sd(TotalSpores_LBcorr_m3))
+    mean_spores.m3 = mean(TotalSpores_FBLBcorr.m3),
+    mean_BcorrSpores.m3 = mean(TotalSpores_Bcorr.m3, na.rm = T),
+    mean_Spores.kg = mean(spores.kg, na.rm = T),
+    sd_spores.m3 = sd(TotalSpores_FBLBcorr.m3))
 
