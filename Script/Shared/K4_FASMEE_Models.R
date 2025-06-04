@@ -12,32 +12,27 @@
 
 library(tidyverse)
 library(emmeans)
-library(lme4)
-library(nlme)
+#library(lme4)
+#library(nlme)
 library(glmmTMB)
 library(DHARMa)
-library(mgcv)
+library(tweedie)
+library(splines)
+# library(mgcv)
 # library(vegan)
-library(ggstatsplot)
+#library(ggstatsplot)
 
 #Spores
 #------------------------------------------------------------------------------------------
 
-k4_spores <- read.csv('Konza4_spores_PA_C_20250501.csv', header = T)
-fasmee23_spores <- read.csv('FASMEE23_Spores_PA_C_20250501.csv', header = T) #Blue only
-
-k4_spores <- k4_spores %>%
-  select(Project, SampleType, StainDate, SlideID, Sample, FOV, TotalSpores, TotalSpores_LB, TotalSpores_LBcorr, 
-         log_volume_offset_m3, MedianPM2.5_ug.m3, MedianPM10_ug.m3, MedianMR, 
-         SmokeLevel, MedianMCE 
-         )
-
-fasmee23_spores <- fasmee23_spores %>%
-  rename(SlideID = "SampleID") %>%
-  select(Project, SampleType, StainDate, SlideID, Sample, FOV, TotalSpores, TotalSpores_LB, TotalSpores_LBcorr, 
-         log_volume_offset_m3, MedianPM2.5_ug.m3, MedianPM10_ug.m3, MedianMR, 
-         SmokeLevel, MedianMCE 
-  )
+k4_spores <- read_csv('./Output/Output_data/K4/k4_Spores_PA_C.csv') %>%
+  select(TotalSpores_FBLBcorr.m3, TotalSpores_Bcorr.m3, spores.kg, SampleType, Project, Day, SampleID, 
+         log_volume_offset_m3, logPM2.5, LB_Batch, MeanTemp_C, MaxTemp_C, MeanRH, MeanMCE)
+fasmee23_spores <- read.csv('./Output/Output_data/FASMEE23/FASMEE23_Spores_PA_C.csv') %>%
+  filter(Platform == "Blue" | (Platform == "Red" & SampleType == "Ambient")) %>%
+  select(TotalSpores_FBLBcorr.m3, TotalSpores_Bcorr.m3, spores.kg, SampleType, Project, Day, SampleID, 
+         log_volume_offset_m3, logPM2.5, LB_Batch, MeanTemp_C, MaxTemp_C, MeanRH, MeanMCE)
+  
 
 fasmee23_k4_spores <- bind_rows(k4_spores, fasmee23_spores)
 
@@ -45,71 +40,96 @@ fasmee23_k4_spores <- fasmee23_k4_spores %>%
   mutate(
     Project = as.factor(Project),
     SampleType = as.factor(SampleType),
-    Sample = as.factor(Sample),
-    SmokeLevel = factor(SmokeLevel, levels = c("None", "Low", "Moderate", "High")),
-    StainDate = as.factor(StainDate),
-    log1TotalSpores_LB = log1p(TotalSpores_LB)
-  ) 
-
-ggplot(fasmee23_k4_spores, aes(x = SmokeLevel, y = MedianMR)) +
-  geom_boxplot() +
-  geom_jitter(width = 0.2, alpha = 0.5) +
-  theme_bw()
+    Day = if_else(Project == "FASMEE23", paste0("F23", "_", Day), paste0("K4", "_", Day)),
+    Day = as.factor(Day),
+    LB_Batch = as.factor(LB_Batch)) 
 
 
-# TotalSpores_m <- glmmTMB(TotalSpores_LBcorr ~ SmokeLevel + MedianMR + Project + offset(log_volume_offset_m3) + 
-#                            (1|Sample),
-#                          family=tweedie(link="log"), dispformula = ~SmokeLevel, data = fasmee23_k4_spores, ziformula = ~0)
-# summary(TotalSpores_m)
+# Smoke vs. Ambient 
+#---------------------------------------------------------------------------------------------------------------
+
+tweedie_profile <- tweedie.profile(
+  TotalSpores_LBcorr_m3 ~ SampleType,
+  data = spores_pa_C,
+  method = "series",     
+  do.plot = TRUE,        
+  p.vec = seq(1.1, 1.8, by = 0.05)  # typical range: 1 < p < 2
+)
+
+tweedie_profile$p.max
 
 
-TotalSpores_m <- glmmTMB(TotalSpores ~ SmokeLevel + Project + MedianMR + offset(log_volume_offset_m3) + offset(log1TotalSpores_LB) +
-                           (1|Sample),
-                         family=nbinom2(link="log"), dispformula = ~SmokeLevel, data = fasmee23_k4_spores, ziformula = ~SampleType)
-summary(TotalSpores_m)
+power <- 1.20
+psi <- qlogis(power - 1.0)
 
-simulationOutput <- simulateResiduals(fittedModel = TotalSpores_m, plot = F)
+SmokeAmbient_model <- glmmTMB(TotalSpores_FBLBcorr.m3 ~ SampleType + Project + (1|SampleID) + (1|LB_Batch),
+                              family=tweedie(link="log"), data = fasmee23_k4_spores, 
+                              ziformula = ~-1, #start = list(psi = psi), map = list(psi = factor(NA)),
+                              dispformula = ~ Project + SampleType)  
+summary(SmokeAmbient_model)
+
+family_params(SmokeAmbient_model)
+
+simulationOutput <- simulateResiduals(fittedModel = SmokeAmbient_model, plot = F)
+plotQQunif(simulationOutput)
+plotResiduals(simulationOutput)
+
+#Smoke
+#-------------------------------------------------------------------------------------------------------
+
+smoke_spores <- fasmee23_k4_spores %>%
+  filter(SampleType == "Smoke")
+
+power <- 1.1
+psi <- qlogis(power - 1.0)
+
+Smoke_model <- glmmTMB(TotalSpores_Bcorr.m3 ~ MeanRH + Project + (1|SampleID) + (1|LB_Batch),
+                       family=tweedie(link="log"), data = smoke_spores, 
+                       ziformula = ~-1,
+                       dispformula = ~Project) #start = list(psi = psi), map = list(psi = factor(NA)))
+summary(Smoke_model)
+
+family_params(Smoke_model)
+
+simulationOutput <- simulateResiduals(fittedModel = Smoke_model, plot = F)
 plotQQunif(simulationOutput)
 plotResiduals(simulationOutput)
 testQuantiles(simulationOutput)
 
-# Smoke spores
-#-------------------------------------------------------------------------------------------------------------------------------------
 
-smoke_fasmee23_k4_spores <- fasmee23_k4_spores %>% 
-  filter(SampleType == "Smoke") 
+# Emission model
+#----------------------------------------------------------------------------------------------------
 
-smoke_fasmee23_k4_spores$logPM25 <- log(smoke_fasmee23_k4_spores$MedianPM2.5_ug.m3)
-smoke_fasmee23_k4_spores$logPM10 <- log(smoke_fasmee23_k4_spores$MedianPM10_ug.m3)
+emission_spores <- smoke_spores %>% filter(!is.na(MeanMCE)) 
+
+ggplot(emission_spores, aes(x = MeanMCE, y = spores.kg, color = SampleID)) +
+  geom_point(size = 3) +
+  geom_smooth(method = "loess", se = FALSE, aes(group = 1)) +
+  theme_minimal()
 
 
-# model_logPM <- glmmTMB(TotalSpores_LBcorr ~ logPM25*MedianMCE + Project + MedianMR +
-#                          offset(log_volume_offset_m3) + (1|Sample),
-#                        family=tweedie(link="log"), data = smoke_fasmee23_k4_spores)
-# summary(model_logPM)
+tweedie_profile <- tweedie.profile(
+  spores.kg ~ poly(MeanMCE, 2)*Project,
+  data = emission_spores,
+  method = "series",     
+  do.plot = TRUE,        
+  p.vec = seq(1.1, 1.9, by = 0.01)  # typical range: 1 < p < 2
+)
 
-# model_logPM <- glmmTMB(TotalSpores_LBcorr ~ logPM25 + MedianMCE + MedianMR + Project +
-#                          logPM25:MedianMCE + logPM25:MedianMR + Project:MedianMCE + 
-#                          offset(log_volume_offset_m3) + (1|Sample),
-#                        family=tweedie(link="log"), ziformula = ~0, data = smoke_fasmee23_k4_spores)
-# 
-# summary(model_logPM)
+tweedie_profile$p.max
 
-model_logPM <- glmmTMB(TotalSpores ~ logPM25*MedianMCE*Project + 
-                         offset(log_volume_offset_m3) + offset(log1TotalSpores_LB) + (1|Sample),
-                       family=nbinom2(link="log"), dispformula = ~logPM25*MedianMCE, ziformula = ~0, data = smoke_fasmee23_k4_spores)
+power <- 1.69
+psi <- qlogis(power - 1.0)
+emission_model <- glmmTMB(spores.kg ~ MeanMCE + Project + (1|SampleID),
+                          family=tweedie(link="log"), data = emission_spores, 
+                          ziformula = ~-1)#, start = list(psi = psi), map = list(psi = factor(NA)))
+summary(emission_model)
 
-summary(model_logPM)
+family_params(emission_model)
 
-model_logPM <- glmmTMB(TotalSpores ~ SmokeLevel*Project + 
-                         offset(log_volume_offset_m3) + offset(log1TotalSpores_LB) + (1|Sample),
-                       family=nbinom2(link="log"), ziformula = ~0, data = smoke_fasmee23_k4_spores)
-
-summary(model_logPM)
-
-simulationOutput <- simulateResiduals(fittedModel = model_logPM, plot = F)
+simulationOutput <- simulateResiduals(fittedModel = emission_model, plot = F)
 plotQQunif(simulationOutput)
 plotResiduals(simulationOutput)
-
+testQuantiles(simulationOutput)
 
 
