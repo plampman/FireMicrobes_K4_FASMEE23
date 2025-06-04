@@ -71,9 +71,8 @@ spores <- spores %>%
   filter(SampleType != "LabBlank") %>%
   mutate(
     TotalSpores_LBcorr = pmax(0, TotalSpores - TotalSpores_LB),
-    TotalSpores_FBLBcorr = pmax(0, TotalSpores_LBcorr - FieldBlank_mean$TotalSpores_FB),
-    log_volume_offset_m3 = if_else(SampleType == "Smoke" | SampleType == "Ambient", log(RepVolume_m3), 0)) %>% 
-  filter(Platform == "Blue" | (Platform == "Red" & SampleType == "Ambient") | Platform == "Blank")
+    log_volume_offset_m3 = if_else(SampleType == "Smoke" | SampleType == "Ambient", log(RepVolume_m3), 0)) #%>% 
+  #filter(Platform == "Blue" | (Platform == "Red" & SampleType == "Ambient") | Platform == "Blank")
 
 FieldBlank_mean <- spores %>%
   filter(SampleType == "FieldBlank") %>%
@@ -114,14 +113,14 @@ spores_pa_C <- left_join(spores_pa, slim_fasmmee_C, by = c('Sample_num' = 'Sampl
     Platform = factor(Platform),
     Day = factor(Day),
     SampleID = factor(SampleID),
-    spores.kg = TotalSpores_Bcorr.m3/biomass_kg)
+    spores.Mg = TotalSpores_Bcorr.m3/biomass_Mg)
 
 unique(spores_pa_C$SampleID)
 
 na_count <- spores_pa_C %>%
   summarize(across(everything(), ~sum(is.na(.))))
 
-#write.csv(spores_blue_pa_C, 'FASMEE23_Spores_PA_C_20250501.csv', row.names = F)
+write.csv(spores_pa_C, 'Output/Output_data/FASMEE23/FASMEE23_Spores_PA_C.csv', row.names = F)
 
 sample_spores <- spores_pa_C  %>%
   group_by(SampleID, AQI_PM2.5, RepVolume_m3) %>%
@@ -134,6 +133,14 @@ sample_spores <- spores_pa_C  %>%
     sd_spores.FOV = sd(TotalSpores),
     mean_spores.m3 = mean(TotalSpores_FBLBcorr.m3),
     mean_BcorrSpores.m3 = mean(TotalSpores_Bcorr.m3, na.rm = T),
-    mean_Spores.kg = mean(spores.kg, na.rm = T),
+    mean_Spores.Mg = mean(spores.Mg, na.rm = T),
     sd_spores.m3 = sd(TotalSpores_FBLBcorr.m3))
+
+FEF_FASMEE23 <- spores_pa_C  %>%
+  summarise(
+    Spores.Mg = mean(spores.Mg, na.rm = T),
+    Spores.m3 = mean(TotalSpores_FBLBcorr.m3))
+
+
+
 
