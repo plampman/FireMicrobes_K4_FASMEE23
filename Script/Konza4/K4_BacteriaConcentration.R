@@ -16,130 +16,149 @@ library(ggstatsplot)
 
 Filter_diam <- 17 ##mm (Obtained from staining tower diameter)
 Filter_area <- ((Filter_diam/2)^2)*pi ##mm^2
-FOV_diam100x <- 0.2 ##mm
-FOV100x_area <- ((FOV_diam100x/2)^2)*pi ##mm^2
-FOV100x.filter <- Filter_area/FOV100x_area ##FoVs/filter
+FOV_diam1000x <- 0.2 ##mm
+FOV1000x_area <- ((FOV_diam1000x/2)^2)*pi ##mm^2
+FOV1000x.filter <- Filter_area/FOV1000x_area ##FoVs/filter
 
+FOV1000x_40_area = FOV1000x_area * 40
+scaling_1000x = Filter_area/FOV1000x_40_area
 
-cells <- read.csv('./Input_Data/Konza4/K4_CELL_COUNTS_20250401.csv', header = T)
+bacteria <- read.csv('./Input_Data/Konza4/K4_BacteriaCounts_1000X_20250401.csv', header = T)
+amb_cells_k3 <- read.csv('./Input_Data/Konza4/Konza3_Bacteria_Ambient_FBLBcorr.csv', header = T)
 
-bacteria <- cells %>%
-  filter(StainType == 'S9PI')
+bacteria <- bacteria %>%
+  filter(SlideID != "10B_A") %>% #Issues with this sample due to staining--REMOVE ALWAYS
+  mutate(SampleID = if_else(SampleType != "LabBlank", gsub("_.*$", "", SlideID), SlideID))
 
-sample_bacteria <- bacteria %>%
-  group_by(SlideID, Sample, Project, SampleType, StainDate, StainType) %>%
-  summarise(
-    medianbacteria.FOV = median(TotalCells),
-    Tot_bacteria.filter = medianbacteria.FOV*FOV100x.filter,
-  ) %>% ungroup
-
-bacteria_LabBlanks <- sample_bacteria %>%
-  filter(SampleType == "LabBlank") %>%
-  group_by(StainDate) %>%
-  summarise(
-    "LabBlank_TotAvg" = mean(Tot_bacteria.filter)) %>%
-  mutate(StainDate = paste("Blank", StainDate, sep = "_")) %>%
-  pivot_wider(names_from = StainDate, values_from = LabBlank_TotAvg)
-
-bacteria_LBcorr <- sample_bacteria %>%
-  filter(SampleType != "LabBlank") %>% 
-  rowwise() %>%
+bacteria <- bacteria %>%
   mutate(
-    Totalbacteria.filter_LBcorr = as.integer(case_when(
-      StainDate >= 20240619 & StainDate < 20240703 ~ Tot_bacteria.filter - bacteria_LabBlanks$Blank_20240621,
-      StainDate >= 20240703 & StainDate < 20250329 ~ Tot_bacteria.filter - bacteria_LabBlanks$Blank_20240703,
-      StainDate >= 20250329 ~ Tot_bacteria.filter - bacteria_LabBlanks$Blank_20250329
-    ))) %>%
+    LB_Batch = as.factor(case_when(
+      StainDate >= 20240619 & StainDate < 20240703 ~ 'K4_A',
+      StainDate >= 20240703 & StainDate < 20241119 ~ 'K4_B',
+      StainDate >= 20241119 & StainDate < 20250329 ~ 'K4_C', # This only applies to K4 spores
+      StainDate >= 20250329 ~ 'K4_D',
+      TRUE ~ NA_character_
+    )))
+
+bacteria <- left_join(bacteria, SampleInfo, by = c("SampleID" = "Sample"))
+
+bacteria <- bacteria %>%
+  mutate(
+    RepVolume_m3 = Slide_RepVolume_L/1000
+    )
+
+blank_means <- bacteria %>%
+  filter(SampleType == "LabBlank") %>%
+  group_by(LB_Batch) %>%
+  summarise(
+    TotalCells_LB = mean(TotalCells),
+    LiveCells_LB = mean(LIVECounts),
+    DeadCells_LB = mean(DEADCounts)
+  ) %>%
   ungroup
 
-bacteria_FieldBlanks <- bacteria_LBcorr %>%
+bacteria <- left_join(bacteria, blank_means, by = "LB_Batch")
+
+bacteria <- bacteria %>%
+  filter(SampleType != "LabBlank") %>%
+  mutate(
+    DeadCells_LBcorr = pmax(0, DEADCounts - DeadCells_LB),
+    LiveCells_LBcorr = pmax(0, LIVECounts - LiveCells_LB),
+    TotalCells_LBcorr = pmax(0, TotalCells - TotalCells_LB))
+
+FieldBlank_mean <- bacteria %>%
   filter(SampleType == "FieldBlank") %>%
-  summarise('FieldBlank_TotAvg' = mean(Totalbacteria.filter_LBcorr))
+  summarise(
+    TotalCells_FB = mean(TotalCells_LBcorr),
+    LiveCells_FB = mean(LiveCells_LBcorr),
+    DeadCells_FB = mean(DeadCells_LBcorr)
+  ) %>%
+  ungroup
 
-bacteria_FB_LBcorr <- bacteria_LBcorr %>%
-  filter(SampleType != 'FieldBlank') %>%
-  mutate(Totalbacteria.filter_FB_LBcorr = Totalbacteria.filter_LBcorr - bacteria_FieldBlanks$FieldBlank_TotAvg)
-
-bacteria_FB_LBcorr <- left_join(bacteria_FB_LBcorr, volume, by = "Sample")
-  
-bacteria_corrected <- bacteria_FB_LBcorr %>%
+bacteria <- bacteria %>%
+  filter(SampleType != "FieldBlank") %>%
   mutate(
-    RepVolume_m3 = RepVolume_L/1000,
-    Tot_bacteria.L = Totalbacteria.filter_FB_LBcorr/RepVolume_L,
-    Tot_bacteria.m3 = Totalbacteria.filter_FB_LBcorr/RepVolume_m3)
-
-bacteria_smoke <- bacteria_corrected  %>%
-  dplyr::filter(SampleType == "Smoke") %>%
-  group_by(SampleType) %>%
-  summarise(bacteria.m3 = mean(Tot_bacteria.m3, na.rm = T))
-
-k2_ambient_bacteria.m3 = 285405
-k2_ambient_0_bacteria.m3 = 130003
-K3_ambient_bacteria.m3 = 338536
-
-bcorr_value = (k2_ambient_0_bacteria.m3 + K3_ambient_bacteria.m3)/2
-
-bacteria_bcorr <- bacteria_corrected %>%
-  dplyr::filter(SampleType != "Ambient" & SampleType != "FieldBlank") %>%
-  mutate(
-    bcorr_bacteria.m3 = Tot_bacteria.m3 - bcorr_value,
-    Sample_num = as.numeric(str_extract_all(Sample, "\\d+"))) %>%
-  select(Sample_num, RepVolume_m3, Tot_bacteria.m3, bcorr_bacteria.m3)
-
-sample_plt <- bacteria_LBcorr %>%
-  filter(SampleType != "FieldBlank")
+    DeadCells_FBLBcorr = pmax(0, DeadCells_LBcorr - FieldBlank_mean$DeadCells_FB),
+    LiveCells_FBLBcorr = pmax(0, LiveCells_LBcorr - FieldBlank_mean$LiveCells_FB),
+    TotalCells_FBLBcorr = pmax(0, TotalCells_LBcorr - FieldBlank_mean$TotalCells_FB),
+    log_volume_offset_m3 = if_else(SampleType == "Smoke" | SampleType == "Ambient", log(RepVolume_m3), 0))
 
 
-plt <- ggplot(sample_plt, aes(x = SampleType, y = Tot_bacteria.m3)) +
-  geom_boxplot(alpha = 0.7, fatten = 0.5, lwd=0.7, outlier.shape = NA) + 
-  geom_jitter(shape = 21, size = 2.5, fill = 'orange', color = 'black', alpha = 0.3, width = 0.15) +
-  scale_y_continuous(labels = scales::scientific)
-
-# plt <- plt +
-#   stat_summary(data = Project_plt,
-#                aes(label = round(after_stat(y), 2), y = bacteria.m3, vjust = -0.5),
-#                #aes(label = round(after_stat(y), 2), y = stage(bacteria.m3, after_stat = 175)), 
-#                fun.y = max, geom = "text", size = 4)  
-#   #annotate("text", size = 4, x=1, y=175, hjust = 1.5, label = "Median")
-
-plt <- plt + 
-  # Add labels and title
-  labs(
-    x = "",
-    y = expression ("bacteria "~m^-3),
-    title = "Wildland Fire Smoke vs. Ambient Air Fungal bacteria"
-  ) + 
-  
-  theme(
-    # This is the new default font in the plot
-    text = element_text(family = "Roboto", size = 8, color = "black"),
-    plot.title = element_text(
-      family = "Lobster Two", 
-      size = 20,
-      face = "bold",
-      color = "#2a475e"
-    ),
-    # Statistical annotations below the main title
-    plot.subtitle = element_text(
-      family = "Roboto", 
-      size = 15, 
-      face = "bold",
-      color="#1b2838"
-    ),
-    plot.title.position = "plot", # slightly different from default
-    axis.text = element_text(size = 10, color = "black"),
-    axis.title = element_text(size = 12)
+Ambient_mean <- amb_cells_k3 %>% # Using Konza 3 ambient samples for background corrections
+  summarise( # Ambient mean for background correction
+    AmbientTotalCells.FOV = mean(Totalbacteria.FOV_FBLBcorr),
+    AmbientLiveCells.FOV = mean(Livebacteria.FOV_FBLBcorr),
+    AmbientDeadCells.FOV = mean(Deadbacteria.FOV_FBLBcorr)
   )
 
-plt <- plt  +
-  theme(
-    axis.ticks = element_blank(),
-    axis.line = element_line(colour = "grey50"),
-    panel.grid = element_line(color = "#b4aea9"),
-    panel.grid.minor = element_blank(),
-    panel.grid.major.x = element_blank(),
-    panel.grid.major.y = element_line(linetype = "dashed"),
-    panel.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
-    plot.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4")
+bacteria <- bacteria %>%
+  mutate(
+    TotalCells_Bcorr = if_else(SampleType == "Smoke", pmax(0, TotalCells_FBLBcorr - Ambient_mean$AmbientTotalCells.FOV), NA),
+    LiveCells_Bcorr = if_else(SampleType == "Smoke", pmax(0, LiveCells_FBLBcorr - Ambient_mean$AmbientLiveCells.FOV), NA),
+    DeadCells_Bcorr = if_else(SampleType == "Smoke", pmax(0, DeadCells_FBLBcorr - Ambient_mean$AmbientDeadCells.FOV), NA),
+    TotalCells.filter_Bcorr = TotalCells_Bcorr*FOV1000x.filter,
+    DeadCells.filter_Bcorr = DeadCells_Bcorr*FOV1000x.filter,
+    LiveCells.filter_Bcorr = LiveCells_Bcorr*FOV1000x.filter,
+    TotalCells_Bcorr.m3 = TotalCells.filter_Bcorr/RepVolume_m3,
+    DeadCells_Bcorr.m3 = DeadCells.filter_Bcorr/RepVolume_m3,
+    LiveCells_Bcorr.m3 = LiveCells.filter_Bcorr/RepVolume_m3,
+    
+    Live.Total_Bcorr = if_else(LiveCells_Bcorr.m3 > 0, LiveCells_Bcorr.m3/TotalCells_Bcorr.m3, 0),
+    
+    TotalCells.filter_FBLBcorr = TotalCells_FBLBcorr*FOV1000x.filter,
+    DeadCells.filter_FBLBcorr = DeadCells_FBLBcorr*FOV1000x.filter,
+    LiveCells.filter_FBLBcorr = LiveCells_FBLBcorr*FOV1000x.filter,
+    TotalCells_FBLBcorr.m3 = TotalCells.filter_FBLBcorr/RepVolume_m3,
+    DeadCells_FBLBcorr.m3 = DeadCells.filter_FBLBcorr/RepVolume_m3,
+    LiveCells_FBLBcorr.m3 = LiveCells.filter_FBLBcorr/RepVolume_m3,
+    
+    LiveCells.TotalCells = if_else(LiveCells_FBLBcorr.m3 > 0, LiveCells_FBLBcorr.m3/TotalCells_FBLBcorr.m3, 0)
   )
-plt
+
+bacteria <- bacteria %>%
+  mutate(
+    SampleID = factor(SampleID),
+    SampleType = factor(SampleType),
+    Day = factor(Day),
+    log_volume_offset_m3 = log(RepVolume_m3))
+
+bacteria_pa <- left_join(bacteria, PA_stats_k4, by = c('Sample_num' = 'Sample'))
+
+bacteria_pa_C <- left_join(bacteria_pa, slim_UI_EPA_C, by = c('Sample_num' = 'Sample')) %>%
+  mutate(
+    Total_bacteria.Mg = TotalCells_Bcorr.m3/biomass_Mg,
+    Live_bacteria.Mg = LiveCells_Bcorr.m3/biomass_Mg
+  )
+
+write.csv(bacteria_pa_C, './Output/Output_data/K4/k4_Bacteria_PA_C.csv', row.names = F)
+
+na_count <- bacteria_pa_C %>%
+  summarize(across(everything(), ~sum(is.na(.))))
+
+sample_bacteria <- bacteria_pa_C  %>%
+  group_by(SampleID, Unit, AQI_PM2.5, RepVolume_m3) %>%
+  summarise(
+    
+    meanMCE = mean(MeanMCE, na.rm = T),
+    meanMR = mean(MedianMR),
+    
+    TotalBacteria.Mg = mean(Total_bacteria.Mg, na.rm = T),
+    LiveBacteria.Mg = mean(Live_bacteria.Mg, na.rm = T),
+    Total_BcorrBacteria.m3 = mean(TotalCells_Bcorr.m3),
+    Live_BcorrBacteria.m3 = mean(LiveCells_Bcorr.m3),
+    sd_total_BcorrBacteria.m3 = sd(TotalCells_Bcorr.m3),
+    sd_live_BcorrBacteria.m3 = sd(LiveCells_Bcorr.m3),
+    Total_Bacteria.m3 = mean(TotalCells_FBLBcorr.m3),
+    Live_bacteria.m3 = mean(LiveCells_FBLBcorr.m3),
+    sd_total_bacteria.m3 = sd(TotalCells_FBLBcorr.m3),
+    sd_live_bacteria.m3 = sd(LiveCells_FBLBcorr.m3))
+
+
+BEF_K4 <- bacteria_pa_C  %>%
+  summarise(
+    TotalBacteria.Mg = mean(Total_bacteria.Mg, na.rm = T),
+    TotalBacteria.m3 = mean(TotalCells_FBLBcorr.m3))
+
+    
+    
+    
