@@ -23,6 +23,14 @@ library(splines)
 #library(ggstatsplot)
 
 
+spores_pa_C <- read.csv('./Output/Output_data/FASMEE23/FASMEE23_Spores_PA_C.csv') %>%
+  filter(Platform == "Blue" | (Platform == "Red" & SampleType == "Ambient")) %>%
+  mutate(
+    Project = as.factor(Project),
+    SampleType = as.factor(SampleType),
+    Day = as.factor(Day),
+    LB_Batch = as.factor(LB_Batch)) 
+
 summary(spores_pa_C)
 
 ### FASMEE Spores
@@ -55,6 +63,15 @@ SmokeAmbient_model <- glmmTMB(TotalSpores_FBLBcorr.m3 ~ SampleType + (1|SampleID
                               ziformula = ~-1, dispformula = ~SampleType)
 summary(SmokeAmbient_model)
 
+emm_log <- emmeans(SmokeAmbient_model, ~ SampleType)
+emm_log
+
+emm_response <- emmeans(SmokeAmbient_model, ~ SampleType, type = "response")
+emm_response
+
+rate_ratios <- pairs(emm_log, reverse = TRUE, type = "response")
+rate_ratios
+
 family_params(SmokeAmbient_model)
 
 simulationOutput <- simulateResiduals(fittedModel = SmokeAmbient_model, plot = F)
@@ -64,22 +81,15 @@ plotResiduals(simulationOutput)
 #Smoke model
 #---------------------------------------------------------------------------------------------------------------------------------
 
-smoke_spore_stats <- smoke_spores %>%
-  group_by(SampleID, LB_Batch) %>%
-  summarise(
-    RH = mean(MeanRH),
-    PM2.5 = mean(MedianPM2.5_ug.m3),
-    Temp = mean(MeanTemp_C),
-    FOVs = n(),
-    NAFOVs = sum(is.na(FOV)),
-    Bcorr_spores = mean(TotalSpores_Bcorr),
-    Bcorr_spores_med = median(TotalSpores_Bcorr),
-    volume = mean(RepVolume_L),
-    MCE = mean(MeanMCE)
-  )
+smoke_spores$MedianPM10_ug.m3
+
+ggplot(smoke_spores, aes(x = MedianPM10_ug.m3, y = TotalSpores_Bcorr.m3, color = SampleID)) +
+  geom_point(size = 3) +
+  geom_smooth(method = "loess", se = FALSE, aes(group = 1)) +
+  theme_minimal()
 
 tweedie_profile <- tweedie.profile(
-  TotalSpores_Bcorr.m3 ~ logPM2.5 + MaxTemp_C + MeanRH,
+  TotalSpores_Bcorr.m3 ~ logPM2.5, 
   data = smoke_spores,
   method = "series",     
   do.plot = TRUE,        
@@ -88,13 +98,12 @@ tweedie_profile <- tweedie.profile(
 
 tweedie_profile$p.max
 
-
-power <- 1.44
+power <- 1.4
 psi <- qlogis(power - 1.0)
 
-Smoke_model <- glmmTMB(TotalSpores_Bcorr.m3 ~ logPM2.5 + MeanRH + MaxTemp_C + (1|SampleID) + (1|LB_Batch),
+Smoke_model <- glmmTMB(TotalSpores_Bcorr.m3 ~ poly(logPM2.5, 3) + (1|SampleID),
                        family=tweedie(link="log"), data = smoke_spores, 
-                       ziformula = ~-, dispformula = ~logPM2.5) #start = list(psi = psi), map = list(psi = factor(NA)))
+                       ziformula = ~-1, dispformula = ~logPM2.5)#, start = list(psi = psi), map = list(psi = factor(NA)))
 summary(Smoke_model)
 
 family_params(Smoke_model)
@@ -170,18 +179,28 @@ print(p)
 
 
 
+
 ########### FASMEE Bacteria ###########################################################
 #######################################################################################
 
 
-# Total cell model for ambient versus smoke with mixing ratio
+# Total cell model for ambient versus smoke 
 #----------------------------------------------------------------------------------------------------
 
-bacteria_stat_test <- bacteria_stat_test %>% filter(SampleID != "B1B")
+bacteria <- read_csv('./Output/Output_data/FASMEE23/FASMEE23_Bacteria_PA_C.csv') %>%
+  filter(Platform == "Blue" | (Platform == "Red" & SampleType == "Ambient")) %>%
+  mutate(
+    Project = as.factor(Project),
+    SampleType = as.factor(SampleType),
+    Day = as.factor(Day),
+    LB_Batch = as.factor(LB_Batch))
+
+smoke_bacteria <- bacteria %>%
+  filter(Platform == "Blue" & SampleType == "Smoke")
 
 tweedie_profile <- tweedie.profile(
   TotalCells_FBLBcorr.m3 ~ SampleType,
-  data = bacteria_stat_test,
+  data = bacteria,
   method = "series",     
   do.plot = TRUE,        
   p.vec = seq(1.1, 1.9, by = 0.01)  # typical range: 1 < p < 2
@@ -189,148 +208,66 @@ tweedie_profile <- tweedie.profile(
 
 tweedie_profile$p.max
 
-family_params(TotalCells_m)
-
-
-power <- 1.69
+power <- 1.6
 psi <- qlogis(power - 1.0)
 
-TotalCells_m <- glmmTMB(TotalCells_FBLBcorr.m3 ~ SampleType + (1|SampleID) + (1|LB_Batch) + (1|Platform),
-                      family=tweedie(link="log"), data = bacteria_stat_test, 
-                      ziformula = ~-1, dispformula = ~SampleType)
-                      #start = list(psi = psi), map = list(psi = factor(NA))))
-summary(TotalCells_m)
+SmokeAmbient_BacteriaModel <- glmmTMB(TotalCells_FBLBcorr.m3 ~ SampleType + Platform + (1|SampleID) + (1|LB_Batch),
+                      family=tweedie(link="log"), data = bacteria, 
+                      ziformula = ~-1, dispformula = ~SampleType) # start = list(psi = psi), map = list(psi = factor(NA)))
+summary(SmokeAmbient_BacteriaModel)
 
+family_params(SmokeAmbient_BacteriaModel)
 
-simulationOutput <- simulateResiduals(fittedModel = TotalCells_m, plot = F)
+simulationOutput <- simulateResiduals(fittedModel = SmokeAmbient_BacteriaModel, plot = F)
 plotQQunif(simulationOutput)
 plotResiduals(simulationOutput)
 testZeroInflation(simulationOutput)
 
 
+emm_log <- emmeans(SmokeAmbient_BacteriaModel, ~ SampleType)
+emm_log
+
+emm_response <- emmeans(SmokeAmbient_BacteriaModel, ~ SampleType, type = "response")
+emm_response
+
+rate_ratios <- pairs(emm_log, reverse = TRUE, type = "response")
+rate_ratios
+
+# Smoke only model
+#----------------------------------------------------------------------------------------------------------------------------------
+
+ggplot(smoke_bacteria, aes(x = logPM2.5, y = TotalCells_Bcorr.m3, color = SampleID)) +
+  geom_point(size = 3) +
+  geom_smooth(method = "loess", se = FALSE, aes(group = 1)) +
+  theme_minimal()
 
 
-# TotalCells_m <- glmmTMB(TotalCells_LBcorr ~ SmokeLevel*MedianMR  + offset(log_volume_offset_m3) + 
-#                           (1|SampleID),
-#                         family=tweedie(link="log"), data = bacteria_blue_pa, ziformula = ~SampleType)
-# summary(TotalCells_m)
-
-family_params(TotalCells_m)
-
-optimal_power <- 1.686
-# Calculate psi value (internal parameter)
-psi <- qlogis(optimal_power - 1.0)
-# Fit model with fixed power parameter
-TotalCells_m <- glmmTMB(
-  TotalCells_LBcorr ~ SmokeLevel*MedianMR + 
-    offset(log_volume_offset_m3) + 
-    (1|SampleID),
-  family = tweedie(link = "log"),
-  data = bacteria_blue_pa, 
-  ziformula = ~SampleType,
-  start = list(psi = psi),  # Set the starting value 
-  map = list(psi = factor(NA))  # Map to fix the parameter
+tweedie_profile <- tweedie.profile(
+  TotalSpores_Bcorr.m3 ~ logPM2.5, 
+  data = smoke_bacteria,
+  method = "series",     
+  do.plot = TRUE,        
+  p.vec = seq(1.1, 1.8, by = 0.05)  # typical range: 1 < p < 2
 )
 
-summary(TotalCells_m)
+tweedie_profile$p.max
 
-# Check the resulting power parameter
-family_params(TotalCells_m)
+power <- 1.4
+psi <- qlogis(power - 1.0)
 
+Smoke_model <- glmmTMB(TotalCells_Bcorr.m3 ~ poly(logPM2.5, 2) + MeanTemp_C + MeanRH + (1|SampleID),
+                       family=tweedie(link="log"), data = smoke_bacteria, 
+                       ziformula = ~-1, dispformula = ~logPM2.5)#, start = list(psi = psi), map = list(psi = factor(NA)))
+summary(Smoke_model)
 
-simulationOutput <- simulateResiduals(fittedModel = TotalCells_m, plot = F)
+family_params(Smoke_model)
+
+simulationOutput <- simulateResiduals(fittedModel = Smoke_model, plot = F)
 plotQQunif(simulationOutput)
 plotResiduals(simulationOutput)
-testZeroInflation(simulationOutput)
+testQuantiles(simulationOutput)
 
-testDispersion(TotalCells_m)
-
-ggplot(bacteria_blue_pa, aes(x=MedianMR, y=TotalCells_LBcorr, color=SmokeLevel)) +
-  geom_point(alpha=0.5) +
-  geom_smooth(method="loess") +
-  theme_minimal() +
-  facet_wrap(~SmokeLevel)
-
-# Create a grid of MedianMR values covering your observed range (assuming 3.0-3.8)
-mr_seq <- seq(3.0, 3.8, by = 0.2)
-
-# Get predicted values at each combination of SmokeLevel and MedianMR
-em_interact <- emmeans(TotalCells_m, 
-                       ~ SmokeLevel | MedianMR, 
-                       at = list(MedianMR = mr_seq),
-                       type = "response")
-
-# View the results
-summary(em_interact)
-
-# Create contrasts between smoke levels at each MedianMR value
-contrasts_by_mr <- contrast(em_interact, 
-                            method = "trt.vs.ctrl", 
-                            ref = "None", 
-                            by = "MedianMR", 
-                            adjust = "none")  # No adjustment within each MR value
-
-summary(contrasts_by_mr, infer = TRUE)
-
-# Total cell hurdle model for smoke level
-#----------------------------------------------------------------------------------------------------
-
-presence_model <- glmmTMB(presence ~ SmokeLevel*MedianMR + 
-                            (1|LB_Batch:SampleID),
-                          family = binomial(link = "logit"), 
-                          data = bacteria_blue_pa)
-summary(presence_model)
-
-positive_only <- subset(bacteria_blue_pa, TotalCells_LBcorr > 0)
-
-# Fit a model for positive values only
-positive_model <- glmmTMB(TotalCells_LBcorr ~ SmokeLevel+MedianMR + 
-                            offset(log_volume_offset_m3) + 
-                            (1|LB_Batch:SampleID),
-                          family = Gamma(link = "log"), 
-                          data = positive_only)
-summary(positive_model)
-
-simulationOutput <- simulateResiduals(fittedModel = positive_model, plot = F)
-plotQQunif(simulationOutput)
-plotResiduals(simulationOutput)
-testDispersion(TotalCells_m)
+  
 
 
-# Live cell model for ambient versus smoke with mixing ratio
-#----------------------------------------------------------------------------------------------------
-
-LiveCells_m <- glmmTMB(LiveCells_LBcorr ~ SampleType*MedianMR + offset(log_volume_offset_m3) + 
-                          (1|LB_Batch:SampleID),
-                        family=tweedie(link="log"), data = bacteria_blue_pa, ziformula = ~SampleType)
-summary(LiveCells_m)
-
-simulationOutput <- simulateResiduals(fittedModel = Live.Total_m, plot = F)
-plotQQunif(simulationOutput)
-plotResiduals(simulationOutput)
-testDispersion(TotalCells_m)
-
-# Live to total cell model for ambient versus smoke with mixing ratio
-#----------------------------------------------------------------------------------------------------
-
-Live.Total_m <- glmmTMB(asin(sqrt(LiveCells.TotalCells))  ~ SampleType*MedianMR + (1|LB_Batch:SampleID),
-                        family=gaussian, data = bacteria_blue_pa)
-summary(Live.Total_m)
-
-simulationOutput <- simulateResiduals(fittedModel = Live.Total_m, plot = F)
-plotQQunif(simulationOutput)
-plotResiduals(simulationOutput)
-testDispersion(TotalCells_m)
-
-
-# Non-linear approach
-#----------------------------------------------------------------------------------------------------
-
-model <- glmmTMB(TotalCells_LBcorr ~ poly(MedianMR, 2)*SampleType + 
-                   offset(log_volume_offset_m3) + 
-                   (1|LB_Batch:SampleID),
-                 ziformula = ~SampleType,
-                 family = tweedie(),
-                 data = bacteria_blue_pa)
-summary(model)
 
