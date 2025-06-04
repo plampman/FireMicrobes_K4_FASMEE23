@@ -76,7 +76,6 @@ PA_stats_k4 <- samples_k4 %>%
 
 PA_stats_k4 <- PA_stats_k4 %>%
   mutate(
-    logPM2.5 = log(MedianPM2.5_ug.m3),
     AQI_PM2.5 = case_when( # AGI levels (using PM concentration) https://www.airnow.gov/aqi/aqi-calculator/
       MedianPM2.5_ug.m3 <= 9 ~ "Good",
       MedianPM2.5_ug.m3 > 9 & MedianPM2.5_ug.m3 <= 125.4 ~ "Moderate/Unhealthy",
@@ -84,7 +83,14 @@ PA_stats_k4 <- PA_stats_k4 %>%
       MedianPM2.5_ug.m3 >= 225.4 ~ "Hazardous",
       TRUE ~ NA_character_),
     AQI_PM2.5 = factor(AQI_PM2.5, 
-                       levels = c("Good", "Moderate/Unhealthy", "Very Unhealthy", "Hazardous")))
+                       levels = c("Good", "Moderate/Unhealthy", "Very Unhealthy", "Hazardous")),
+    SmokeLevel = case_when(
+      MedianPM2.5_ug.m3 < 20 ~ "None",
+      MedianPM2.5_ug.m3 >= 20 & MedianPM2.5_ug.m3 < 350 ~ "Low",
+      MedianPM2.5_ug.m3 >= 350 & MedianPM2.5_ug.m3 < 700 ~ "Moderate",
+      MedianPM2.5_ug.m3 >= 700 ~ "High",
+      TRUE ~ NA_character_),
+    SmokeLevel = factor(SmokeLevel, levels = c("None", "Low", "Moderate", "High")))
 
 
 # Different "smoke levels"
