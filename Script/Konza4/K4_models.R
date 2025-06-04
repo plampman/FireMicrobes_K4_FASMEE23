@@ -25,7 +25,12 @@ library(splines)
 # library(vegan)
 #library(ggstatsplot)
 
-
+spores_pa_C <- read_csv('./Output/Output_data/K4/k4_Spores_PA_C.csv') %>%
+  mutate(
+    Project = as.factor(Project),
+    SampleType = as.factor(SampleType),
+    Day = as.factor(Day),
+    LB_Batch = as.factor(LB_Batch))
 
 smoke_spores <- spores_pa_C %>%
   filter(SampleType == "Smoke")
@@ -36,7 +41,7 @@ smoke_spores <- spores_pa_C %>%
 #---------------------------------------------------------------------------------------------------------------------------------
 
 tweedie_profile <- tweedie.profile(
-  TotalSpores_LBcorr_m3 ~ SampleType,
+  TotalSpores_FBLBcorr.m3 ~ SampleType,
   data = spores_pa_C,
   method = "series",     
   do.plot = TRUE,        
@@ -46,26 +51,39 @@ tweedie_profile <- tweedie.profile(
 tweedie_profile$p.max
 
 
-power <- 1.1
+power <- 1.1265
 psi <- qlogis(power - 1.0)
 
-SmokeAmbient_model <- glmmTMB(TotalSpores_LBcorr.m3 ~ SampleType + (1|SampleID) + (1|LB_Batch),
+SmokeAmbient_model <- glmmTMB(TotalSpores_FBLBcorr.m3 ~ SampleType + (1|SampleID) + (1|LB_Batch),
                          family=tweedie(link="log"), data = spores_pa_C, 
-                         ziformula = ~-1, start = list(psi = psi), map = list(psi = factor(NA)))
+                         ziformula = ~-1, start = list(psi = psi), map = list(psi = factor(NA)),
+                         dispformula = ~SampleType)
 summary(SmokeAmbient_model)
+
+family_params(SmokeAmbient_model)
 
 simulationOutput <- simulateResiduals(fittedModel = SmokeAmbient_model, plot = F)
 plotQQunif(simulationOutput)
 plotResiduals(simulationOutput)
 
 
+emm_log <- emmeans(SmokeAmbient_model, ~ SampleType)
+emm_log
+
+emm_response <- emmeans(SmokeAmbient_model, ~ SampleType, type = "response")
+emm_response
+
+rate_ratios <- pairs(emm_log, reverse = TRUE, type = "response")
+rate_ratios
+
 #Smoke model
 #---------------------------------------------------------------------------------------------------------------------------------
+smoke_spores$MeanPM2.5_ug.m3
 
 power <- 1.1
 psi <- qlogis(power - 1.0)
 
-Smoke_model <- glmmTMB(TotalSpores_Bcorr.m3 ~ logPM2.5 + MaxTemp_C + MeanRH + (1|SampleID) + (1|LB_Batch),
+Smoke_model <- glmmTMB(TotalSpores_FBLBcorr.m3 ~ log(MedianPM2.5_ug.m3) + MaxTemp_C + MeanRH + (1|SampleID) + (1|LB_Batch),
                               family=tweedie(link="log"), data = smoke_spores, 
                               ziformula = ~-1, start = list(psi = psi), map = list(psi = factor(NA)))
 summary(Smoke_model)
@@ -194,6 +212,32 @@ p <- ggplot(emission_spores, aes(x = MeanMCE, y = spores.kg)) +
        title = "Non-linear relationship between MCE and spore emission")
 
 print(p)
+
+# Bacteria smoke model
+#-------------------------------------------------------------------------------------------------------------------------
+
+smoke_bacteria <- read_csv('./Output/Output_data/K4/k4_Bacteria_PA_C.csv') %>%
+  filter(SampleType == "Smoke") %>%
+  mutate(
+    SampleType = as.factor(SampleType),
+    Day = as.factor(Day),
+    LB_Batch = as.factor(LB_Batch))
+
+power <- 1.1
+psi <- qlogis(power - 1.0)
+
+Smoke_BacteriaModel <- glmmTMB(TotalCells_Bcorr.m3 ~ logPM2.5 + MeanTemp_C + (1|SampleID) + (1|LB_Batch),
+                       family=tweedie(link="log"), data = smoke_bacteria, 
+                       ziformula = ~-1) #, start = list(psi = psi), map = list(psi = factor(NA)))
+summary(Smoke_BacteriaModel)
+
+family_params(Smoke_BacteriaModel)
+
+simulationOutput <- simulateResiduals(fittedModel = Smoke_BacteriaModel, plot = F)
+plotQQunif(simulationOutput)
+plotResiduals(simulationOutput)
+testQuantiles(simulationOutput)
+
 
 
 #Extra
