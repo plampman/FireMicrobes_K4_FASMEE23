@@ -109,11 +109,12 @@ UI_EPA_C <- UI_EPA_C %>%
     biomass_mg = ALL_carbon_mg.m3*2,
     biomass_g = biomass_mg/1000,
     biomass_kg = biomass_g/1000,
+    biomass_Mg = biomass_kg/1000,
     TC.Gas_C = bcorr_TC_mg.m3/MeanCO2_CO_mg.m3
   ) %>% ungroup
 
 slim_UI_EPA_C <- UI_EPA_C %>%
-  select(Sample, 4:13, 31:36)
+  select(Sample, 4:13, 31:37)
 
 
 
