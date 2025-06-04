@@ -37,7 +37,6 @@ spores <- spores %>%
     ))
   )
 
-
 spores <- left_join(spores, SampleInfo, by = c("SampleID" = "Sample"))
 
 spores <- spores %>%
@@ -55,80 +54,72 @@ blank_means <- spores %>%
   ) %>%
   ungroup
 
-FieldBlank_means <- spores %>%
-  filter(SampleType == "FieldBlank") %>%
-  group_by(SampleID) %>%
-  summarise(
-    TotalSpores_FB = mean(TotalSpores),
-    TotalSpores_FB.filter = TotalSpores_FB*FOV1000x.filter,
-    log1TotalSpores_FB = log1p(TotalSpores_FB),
-    log1TotalSpores_FB.filter = log1p(TotalSpores_FB.filter) 
-  ) %>%
-  ungroup
-
-
 spores <- left_join(spores, blank_means, by = "LB_Batch")
 
 spores <- spores %>%
   filter(SampleType != "LabBlank") %>%
-  mutate( # Lab blank corrected
-    TotalSpores_LBcorr = pmax(0, TotalSpores - TotalSpores_LB))
+  mutate(
+    TotalSpores_LBcorr = pmax(0, TotalSpores - TotalSpores_LB),
+    log_volume_offset_m3 = if_else(SampleType == "Smoke" | SampleType == "Ambient", log(RepVolume_m3), 0)) 
+
+FieldBlank_mean <- spores %>%
+  filter(SampleType == "FieldBlank") %>%
+  summarise(
+    TotalSpores_FB = mean(TotalSpores_LBcorr)
+  ) %>%
+  ungroup
+
+spores <- spores %>%
+  filter(SampleType != "FieldBlank") %>%
+  mutate(
+    TotalSpores_FBLBcorr = pmax(0, TotalSpores_LBcorr - FieldBlank_mean$TotalSpores_FB))
 
 Ambient_mean <- spores %>%
   filter(SampleType == "Ambient") %>%
   summarise( # Ambient mean for background correction
-    AmbientSpores.FOV = mean(TotalSpores_LBcorr),
+    AmbientSpores.FOV = mean(TotalSpores_FBLBcorr)
   )
 
 spores <- spores %>%
-  filter(SampleType != "LabBlank") %>%
-  mutate(
-    TotalSpores.filter = TotalSpores*FOV1000x.filter,
-    TotalSpores.filter_LBcorr = TotalSpores_LBcorr*FOV1000x.filter,
-    TotalSpores_LBcorr.m3 = TotalSpores.filter_LBcorr/RepVolume_m3,
-    TotalSpores_Bcorr = if_else(SampleType == "Smoke", pmax(0, TotalSpores_LBcorr - Ambient_mean$AmbientSpores.FOV), NA),
-    TotalSpores_Bcorr.m3 = (TotalSpores_Bcorr*FOV1000x.filter)/RepVolume_m3,
-    log_volume_offset_m3 = if_else(SampleType == "Smoke" | SampleType == "Ambient", log(RepVolume_m3), 0),
-    log_volume_offset_L = if_else(SampleType == "Smoke" | SampleType == "Ambient", log(Slide_RepVolume_L), 0)) 
+  filter(SampleType != "FieldBlank") %>%
+  mutate(Sample_num = as.numeric(str_extract(SampleID, "\\d+")),
+         TotalSpores.filter = TotalSpores*FOV1000x.filter,
+         TotalSpores.filter_FBLBcorr = TotalSpores_FBLBcorr*FOV1000x.filter,
+         TotalSpores_FBLBcorr.m3 = TotalSpores.filter_FBLBcorr/RepVolume_m3,
+         TotalSpores_Bcorr = if_else(SampleType == "Smoke", pmax(0, TotalSpores_FBLBcorr - Ambient_mean$AmbientSpores.FOV), NA),
+         TotalSpores_Bcorr.m3 = (TotalSpores_Bcorr*FOV1000x.filter)/RepVolume_m3,
+         log_volume_offset_m3 = if_else(SampleType == "Smoke" | SampleType == "Ambient", log(RepVolume_m3), 0)
+  )
 
-spores_stat_test <- spores %>%
-  filter(SampleType == "Ambient" | SampleType == "Smoke") %>%
-  mutate(
-    SampleType = factor(SampleType),
-    Unit = factor(Unit),
-    Day = factor(Day),
-    log_volume_offset_m3 = log(RepVolume_m3),
-    Sample_num = as.numeric(str_extract(SampleID, "\\d+")))
-
-spores_pa <- left_join(spores_stat_test, PA_stats_k4, by = c('Sample_num' = 'Sample'))
+spores_pa <- left_join(spores, PA_stats_k4, by = c('Sample_num' = 'Sample'))
 
 spores_pa_C <- left_join(spores_pa, slim_UI_EPA_C, by = c('Sample_num' = 'Sample')) %>%
   mutate(
-    spores.kg = TotalSpores_Bcorr.m3/biomass_kg,
-    log1spores.kg = log1p(spores.kg)
+    spores.Mg = TotalSpores_Bcorr.m3/biomass_Mg,
+    log1spores.Mg = log1p(spores.Mg)
   )
 
 na_count <- spores_pa_C %>%
   summarize(across(everything(), ~sum(is.na(.))))
 
-#write.csv(spores_stat_test, './k4_spore_stat_test.csv', row.names = F)
+#write.csv(spores_pa_C, './Output/Output_data/K4/k4_Spores_PA_C.csv', row.names = F)
 
 sample_spores <- spores_pa_C  %>%
-  group_by(SampleID, AQI_PM2.5, RepVolume_m3) %>%
+  group_by(SampleID, Unit, AQI_PM2.5, RepVolume_m3) %>%
   summarise(
+    mean_Spores.Mg = mean(spores.Mg, na.rm = T),
     meanMCE = mean(MeanMCE, na.rm = T),
-    meanlogPM2.5 = mean(logPM2.5),
     meanMR = mean(MedianMR),
     mean_spores.FOV = mean(TotalSpores),
     sd_spores.FOV = sd(TotalSpores),
-    mean_spores.m3 = mean(TotalSpores_LBcorr.m3),
+    mean_spores.m3 = mean(TotalSpores_FBLBcorr.m3),
     mean_BcorrSpores.m3 = mean(TotalSpores_Bcorr.m3, na.rm = T),
-    mean_Spores.kg = mean(spores.kg, na.rm = T),
-    mean_log1spores.kg = mean(log1spores.kg, na.rm = T),
-    sd_spores.m3 = sd(TotalSpores_LBcorr.m3))
+    sd_spores.m3 = sd(TotalSpores_FBLBcorr.m3))
 
-
-
+FEF_K4 <- spores_pa_C  %>%
+  summarise(
+    Spores.Mg = mean(spores.Mg, na.rm = T),
+    Spores.m3 = mean(TotalSpores_FBLBcorr.m3))
 
 
 
