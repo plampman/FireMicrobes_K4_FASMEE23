@@ -72,6 +72,7 @@ FieldBlank_mean <- spores %>%
 spores <- spores %>%
   filter(SampleType != "FieldBlank") %>%
   mutate(
+    TotalSpores_FBLB = TotalSpores_LB + FieldBlank_mean$TotalSpores_FB,
     TotalSpores_FBLBcorr = pmax(0, TotalSpores_LBcorr - FieldBlank_mean$TotalSpores_FB))
 
 Ambient_mean <- spores %>%
@@ -96,13 +97,14 @@ spores_pa <- left_join(spores, PA_stats_k4, by = c('Sample_num' = 'Sample'))
 spores_pa_C <- left_join(spores_pa, slim_UI_EPA_C, by = c('Sample_num' = 'Sample')) %>%
   mutate(
     spores.Mg = TotalSpores_Bcorr.m3/biomass_Mg,
-    log1spores.Mg = log1p(spores.Mg)
+    spores.kg = TotalSpores_Bcorr.m3/biomass_kg,
+    spores.mg = TotalSpores_Bcorr.m3/biomass_mg
   )
 
 na_count <- spores_pa_C %>%
   summarize(across(everything(), ~sum(is.na(.))))
 
-#write.csv(spores_pa_C, './Output/Output_data/K4/k4_Spores_PA_C.csv', row.names = F)
+write.csv(spores_pa_C, './Output/Output_data/K4/k4_Spores_PA_C.csv', row.names = F)
 
 sample_spores <- spores_pa_C  %>%
   group_by(SampleID, Unit, AQI_PM2.5, RepVolume_m3) %>%

@@ -59,8 +59,7 @@ blank_means <- spores %>%
   filter(SampleType == "LabBlank") %>%
   group_by(LB_Batch) %>%
   summarise(
-    TotalSpores_LB = mean(TotalSpores),
-    log1TotalSpores_LB = log1p(TotalSpores_LB),
+    TotalSpores_LB = median(TotalSpores),
   ) %>%
   ungroup
 
@@ -77,31 +76,33 @@ spores <- spores %>%
 FieldBlank_mean <- spores %>%
   filter(SampleType == "FieldBlank") %>%
   summarise(
-    TotalSpores_FB = mean(TotalSpores_LBcorr)
+    TotalSpores_FB = median(TotalSpores)
   ) %>%
   ungroup
 
 spores <- spores %>%
   filter(SampleType != "FieldBlank") %>%
   mutate(
+    TotalSpores_FBLB = TotalSpores_LB + FieldBlank_mean$TotalSpores_FB,
     TotalSpores_FBLBcorr = pmax(0, TotalSpores_LBcorr - FieldBlank_mean$TotalSpores_FB))
 
 Ambient_mean <- spores %>%
   filter(SampleType == "Ambient") %>%
   summarise( # Ambient mean for background correction
-    AmbientSpores.FOV = mean(TotalSpores_FBLBcorr)
-  )
+    AmbientSpores.FOV = mean(TotalSpores_FBLBcorr),
+    Ambient_Offset = mean((TotalSpores*FOV1000x.filter)/RepVolume_m3))
 
 spores <- spores %>%
   filter(SampleType != "FieldBlank") %>%
   mutate(Sample_num = if_else(Platform == "Blue", str_extract(SampleID, "\\d+"), NA_character_),
          Sample_num = as.numeric(Sample_num),
          TotalSpores.filter = TotalSpores*FOV1000x.filter,
+         TotalSpores.m3 = TotalSpores.filter/RepVolume_m3,
          TotalSpores.filter_FBLBcorr = TotalSpores_FBLBcorr*FOV1000x.filter,
          TotalSpores_FBLBcorr.m3 = TotalSpores.filter_FBLBcorr/RepVolume_m3,
          TotalSpores_Bcorr = if_else(SampleType == "Smoke", pmax(0, TotalSpores_FBLBcorr - Ambient_mean$AmbientSpores.FOV), NA),
          TotalSpores_Bcorr.m3 = (TotalSpores_Bcorr*FOV1000x.filter)/RepVolume_m3,
-         log_volume_offset_m3 = if_else(SampleType == "Smoke" | SampleType == "Ambient", log(RepVolume_m3), 0)
+         Ambient_Offset = Ambient_mean$Ambient_Offset
          )
 
 spores_pa <- left_join(spores, PA_stats_FASMEE23, by = c('Sample_num' = 'Sample'))
@@ -109,11 +110,11 @@ spores_pa <- left_join(spores, PA_stats_FASMEE23, by = c('Sample_num' = 'Sample'
 spores_pa_C <- left_join(spores_pa, slim_fasmmee_C, by = c('Sample_num' = 'Sample')) %>%
   mutate(
     Platform = if_else(is.na(Platform), "Blank", Platform),
-    SampleType = factor(SampleType),
-    Platform = factor(Platform),
-    Day = factor(Day),
-    SampleID = factor(SampleID),
-    spores.Mg = TotalSpores_Bcorr.m3/biomass_Mg)
+
+    spores.Mg = TotalSpores_Bcorr.m3/biomass_Mg,
+    spores.kg = TotalSpores_Bcorr.m3/biomass_kg,
+    spores.mg = TotalSpores_Bcorr.m3/biomass_mg,
+    )
 
 unique(spores_pa_C$SampleID)
 
