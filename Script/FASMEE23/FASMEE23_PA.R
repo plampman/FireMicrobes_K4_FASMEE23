@@ -88,6 +88,13 @@ PA_stats_FASMEE23 <- PA_stats_FASMEE23 %>%
       MedianPM2.5_ug.m3 >= 225.4 ~ "Hazardous",
       TRUE ~ NA_character_),
     AQI_PM2.5 = factor(AQI_PM2.5, 
-                       levels = c("Good", "Moderate/Unhealthy", "Very Unhealthy", "Hazardous")))
+                       levels = c("Good", "Moderate/Unhealthy", "Very Unhealthy", "Hazardous")),
+    SmokeLevel = case_when(
+      MedianPM2.5_ug.m3 < 20 ~ "None",
+      MedianPM2.5_ug.m3 >= 20 & MedianPM2.5_ug.m3 < 350 ~ "Low",
+      MedianPM2.5_ug.m3 >= 350 & MedianPM2.5_ug.m3 < 700 ~ "Moderate",
+      MedianPM2.5_ug.m3 >= 700 ~ "High",
+      TRUE ~ NA_character_),
+    SmokeLevel = factor(SmokeLevel, levels = c("None", "Low", "Moderate", "High")))
 
 
