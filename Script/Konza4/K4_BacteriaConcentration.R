@@ -64,7 +64,7 @@ bacteria <- bacteria %>%
   mutate(
     DeadCells_LBcorr = pmax(0, DEADCounts - DeadCells_LB),
     LiveCells_LBcorr = pmax(0, LIVECounts - LiveCells_LB),
-    TotalCells_LBcorr = pmax(0, TotalCells - TotalCells_LB))
+    TotalCells_LBcorr = DeadCells_LBcorr + LiveCells_LBcorr)
 
 FieldBlank_mean <- bacteria %>%
   filter(SampleType == "FieldBlank") %>%
@@ -78,9 +78,12 @@ FieldBlank_mean <- bacteria %>%
 bacteria <- bacteria %>%
   filter(SampleType != "FieldBlank") %>%
   mutate(
+    TotalCells_FBLB = TotalCells_LB + FieldBlank_mean$TotalCells_FB,
+    LiveCells_FBLB = LiveCells_LB + FieldBlank_mean$LiveCells_FB,
+    
     DeadCells_FBLBcorr = pmax(0, DeadCells_LBcorr - FieldBlank_mean$DeadCells_FB),
     LiveCells_FBLBcorr = pmax(0, LiveCells_LBcorr - FieldBlank_mean$LiveCells_FB),
-    TotalCells_FBLBcorr = pmax(0, TotalCells_LBcorr - FieldBlank_mean$TotalCells_FB),
+    TotalCells_FBLBcorr = LiveCells_FBLBcorr + DeadCells_FBLBcorr,
     log_volume_offset_m3 = if_else(SampleType == "Smoke" | SampleType == "Ambient", log(RepVolume_m3), 0))
 
 
@@ -93,41 +96,39 @@ Ambient_mean <- amb_cells_k3 %>% # Using Konza 3 ambient samples for background 
 
 bacteria <- bacteria %>%
   mutate(
-    TotalCells_Bcorr = if_else(SampleType == "Smoke", pmax(0, TotalCells_FBLBcorr - Ambient_mean$AmbientTotalCells.FOV), NA),
+    Live.Total = if_else(TotalCells > 0, LIVECounts/TotalCells, NA),
+    
+    TotalCells.m3 = (TotalCells*FOV1000x.filter)/RepVolume_m3,
+    
+    TotalCells_FBLBcorr.m3 = (TotalCells_FBLBcorr*FOV1000x.filter)/RepVolume_m3,
+    DeadCells_FBLBcorr.m3 = (DeadCells_FBLBcorr*FOV1000x.filter)/RepVolume_m3,
+    LiveCells_FBLBcorr.m3 = (LiveCells_FBLBcorr*FOV1000x.filter)/RepVolume_m3,
+    
+    Live.Total_FBLBcorr = if_else(TotalCells_FBLBcorr.m3 > 0, LiveCells_FBLBcorr.m3/TotalCells_FBLBcorr.m3, NA),
+    
     LiveCells_Bcorr = if_else(SampleType == "Smoke", pmax(0, LiveCells_FBLBcorr - Ambient_mean$AmbientLiveCells.FOV), NA),
     DeadCells_Bcorr = if_else(SampleType == "Smoke", pmax(0, DeadCells_FBLBcorr - Ambient_mean$AmbientDeadCells.FOV), NA),
-    TotalCells.filter_Bcorr = TotalCells_Bcorr*FOV1000x.filter,
-    DeadCells.filter_Bcorr = DeadCells_Bcorr*FOV1000x.filter,
-    LiveCells.filter_Bcorr = LiveCells_Bcorr*FOV1000x.filter,
-    TotalCells_Bcorr.m3 = TotalCells.filter_Bcorr/RepVolume_m3,
-    DeadCells_Bcorr.m3 = DeadCells.filter_Bcorr/RepVolume_m3,
-    LiveCells_Bcorr.m3 = LiveCells.filter_Bcorr/RepVolume_m3,
+    TotalCells_Bcorr = if_else(SampleType == "Smoke", LiveCells_Bcorr + DeadCells_Bcorr, NA),
     
-    Live.Total_Bcorr = if_else(LiveCells_Bcorr.m3 > 0, LiveCells_Bcorr.m3/TotalCells_Bcorr.m3, 0),
+    TotalCells_Bcorr.m3 = (TotalCells_Bcorr*FOV1000x.filter)/RepVolume_m3,
+    DeadCells_Bcorr.m3 = (DeadCells_Bcorr*FOV1000x.filter)/RepVolume_m3,
+    LiveCells_Bcorr.m3 = (LiveCells_Bcorr*FOV1000x.filter)/RepVolume_m3,
     
-    TotalCells.filter_FBLBcorr = TotalCells_FBLBcorr*FOV1000x.filter,
-    DeadCells.filter_FBLBcorr = DeadCells_FBLBcorr*FOV1000x.filter,
-    LiveCells.filter_FBLBcorr = LiveCells_FBLBcorr*FOV1000x.filter,
-    TotalCells_FBLBcorr.m3 = TotalCells.filter_FBLBcorr/RepVolume_m3,
-    DeadCells_FBLBcorr.m3 = DeadCells.filter_FBLBcorr/RepVolume_m3,
-    LiveCells_FBLBcorr.m3 = LiveCells.filter_FBLBcorr/RepVolume_m3,
-    
-    LiveCells.TotalCells = if_else(LiveCells_FBLBcorr.m3 > 0, LiveCells_FBLBcorr.m3/TotalCells_FBLBcorr.m3, 0)
+    Live.Total_Bcorr = if_else(TotalCells_Bcorr.m3 > 0, LiveCells_Bcorr.m3/TotalCells_Bcorr.m3, NA)
   )
-
-bacteria <- bacteria %>%
-  mutate(
-    SampleID = factor(SampleID),
-    SampleType = factor(SampleType),
-    Day = factor(Day),
-    log_volume_offset_m3 = log(RepVolume_m3))
 
 bacteria_pa <- left_join(bacteria, PA_stats_k4, by = c('Sample_num' = 'Sample'))
 
 bacteria_pa_C <- left_join(bacteria_pa, slim_UI_EPA_C, by = c('Sample_num' = 'Sample')) %>%
   mutate(
     Total_bacteria.Mg = TotalCells_Bcorr.m3/biomass_Mg,
-    Live_bacteria.Mg = LiveCells_Bcorr.m3/biomass_Mg
+    Live_bacteria.Mg = LiveCells_Bcorr.m3/biomass_Mg,
+    
+    Total_bacteria.kg = TotalCells_Bcorr.m3/biomass_kg,
+    Live_bacteria.kg = LiveCells_Bcorr.m3/biomass_kg,
+    
+    Total_bacteria.mg = TotalCells_Bcorr.m3/biomass_mg,
+    Live_bacteria.mg = LiveCells_Bcorr.m3/biomass_mg
   )
 
 write.csv(bacteria_pa_C, './Output/Output_data/K4/k4_Bacteria_PA_C.csv', row.names = F)
@@ -157,7 +158,12 @@ sample_bacteria <- bacteria_pa_C  %>%
 BEF_K4 <- bacteria_pa_C  %>%
   summarise(
     TotalBacteria.Mg = mean(Total_bacteria.Mg, na.rm = T),
-    TotalBacteria.m3 = mean(TotalCells_FBLBcorr.m3))
+    LiveBacteria.Mg = mean(Live_bacteria.Mg, na.rm = T),
+    Total_Bacteria.m3 = mean(TotalCells_FBLBcorr.m3),
+    Live_bacteria.m3 = mean(LiveCells_FBLBcorr.m3),
+    Live.Total_FBLBcorr = mean(Live.Total_FBLBcorr, na.rm = T),
+    Live.Total = mean(Live.Total, na.rm = T)
+  )
 
     
     
