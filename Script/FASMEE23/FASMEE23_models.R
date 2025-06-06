@@ -29,7 +29,8 @@ spores_pa_C <- read.csv('./Output/Output_data/FASMEE23/FASMEE23_Spores_PA_C.csv'
     Project = as.factor(Project),
     SampleType = as.factor(SampleType),
     Day = as.factor(Day),
-    LB_Batch = as.factor(LB_Batch)) 
+    LB_Batch = as.factor(LB_Batch),
+    SmokeLevel = factor(SmokeLevel, levels = c("None", "Low", "Moderate", "High"))) 
 
 summary(spores_pa_C)
 
@@ -58,10 +59,18 @@ tweedie_profile$p.max
 power <- 1.33
 psi <- qlogis(power - 1.0)
 
-SmokeAmbient_model <- glmmTMB(TotalSpores_FBLBcorr.m3 ~ SampleType + (1|SampleID) + (1|LB_Batch),
+SmokeAmbient_model <- glmmTMB(TotalSpores.m3 ~ SampleType + (1|SampleID) + (1|LB_Batch),
                               family=tweedie(link="log"), data = spores_pa_C, 
                               ziformula = ~-1, dispformula = ~SampleType)
 summary(SmokeAmbient_model)
+
+
+SmokeAmbient_model <- glmmTMB(TotalSpores ~ SampleType + offset(log(RepVolume_L)) + 
+                                (1|SampleID) + (1|LB_Batch),
+                              family=nbinom2(link="log"), data = spores_pa_C, 
+                              ziformula = ~-1, dispformula = ~SampleType)
+summary(SmokeAmbient_model)
+
 
 emm_log <- emmeans(SmokeAmbient_model, ~ SampleType)
 emm_log
@@ -74,9 +83,13 @@ rate_ratios
 
 family_params(SmokeAmbient_model)
 
-simulationOutput <- simulateResiduals(fittedModel = SmokeAmbient_model, plot = F)
-plotQQunif(simulationOutput)
-plotResiduals(simulationOutput)
+res <- simulateResiduals(fittedModel = SmokeAmbient_model, plot = F)
+plotResiduals(res)
+plotQQunif(res)
+
+plotResiduals(res, spores_pa_C$SampleType)  # Residuals by group
+testZeroInflation(res)
+testDispersion(res) 
 
 #Smoke model
 #---------------------------------------------------------------------------------------------------------------------------------
@@ -101,17 +114,73 @@ tweedie_profile$p.max
 power <- 1.4
 psi <- qlogis(power - 1.0)
 
-Smoke_model <- glmmTMB(TotalSpores_Bcorr.m3 ~ poly(logPM2.5, 3) + (1|SampleID),
+Smoke_model <- glmmTMB(TotalSpores.m3 ~ poly(logPM2.5, 3) + MeanTemp_C + (1|SampleID) + (1|LB_Batch),
                        family=tweedie(link="log"), data = smoke_spores, 
-                       ziformula = ~-1, dispformula = ~logPM2.5)#, start = list(psi = psi), map = list(psi = factor(NA)))
+                       ziformula = ~-1, dispformula = ~poly(logPM2.5, 3))
 summary(Smoke_model)
 
 family_params(Smoke_model)
+
+#, start = list(psi = psi), map = list(psi = factor(NA)))
+
+
+
+Smoke_model <- glmmTMB(TotalSpores ~ poly(logPM2.5, 3) + MeanTemp_C + offset(log(RepVolume_m3)) + 
+                         (1|SampleID) + (1|LB_Batch),
+                       family=nbinom2(link="log"), data = smoke_spores, 
+                       ziformula = ~-1, dispformula = ~poly(logPM2.5, 3))
+summary(Smoke_model)
+
 
 simulationOutput <- simulateResiduals(fittedModel = Smoke_model, plot = F)
 plotQQunif(simulationOutput)
 plotResiduals(simulationOutput)
 testQuantiles(simulationOutput)
+
+
+pm25_emmeans <- emmeans(Smoke_model, 
+                        ~logPM2.5,  
+                        at = list(logPM2.5 = seq(min(smoke_spores$logPM2.5, na.rm = TRUE),
+                                                 max(smoke_spores$logPM2.5, na.rm = TRUE),
+                                                 length.out = 50)),
+                        type = "response")
+
+pm25_plot_data <- as.data.frame(pm25_emmeans)
+
+pm25_plot_data$PM2.5 <- exp(pm25_plot_data$logPM2.5)
+
+ggplot() +
+  geom_ribbon(data = pm25_plot_data, 
+              aes(x = PM2.5, ymin = (asymp.LCL*7225)/0.03, ymax = (asymp.UCL*7225)/0.03), 
+              alpha = 0.3, fill = "blue") +
+  geom_line(data = pm25_plot_data, 
+            aes(x = PM2.5, y = (response*7225)/0.03), 
+            size = 1.2, color = "blue") +
+  geom_point(data = smoke_spores, 
+             aes(x = MedianPM2.5_ug.m3, y = TotalSpores.m3), 
+             alpha = 0.6, size = 2, color = "black") +
+  labs(x = expression(PM[2.5]~(μg/m^3)),
+       y = expression(Spores~m^-3),
+       title = "Spore Concentration vs PM2.5 (Cubic Relationship)") +
+  theme_minimal()
+
+
+temp_emmeans <- emmeans(Smoke_model,
+                        specs = "MeanTemp_C",
+                        at = list(MeanTemp_C = seq(min(smoke_spores$MeanTemp_C, na.rm = TRUE),
+                                                   max(smoke_spores$MeanTemp_C, na.rm = TRUE),
+                                                   length.out = 30)), type = "response")
+
+temp_plot_data <- as.data.frame(temp_emmeans)
+
+ggplot(temp_plot_data, aes(x = MeanTemp_C, y = response)) +
+  geom_line(size = 1.2, color = "red") +
+  geom_ribbon(aes(ymin = asymp.LCL, ymax = asymp.UCL), 
+              alpha = 0.3, fill = "red") +
+  labs(x = "Mean Temperature (°C)",
+       y = "Predicted Total Spores",
+       title = "Spore Count vs Temperature") +
+  theme_minimal()
 
 
 
@@ -140,12 +209,20 @@ power <- 1.69
 psi <- qlogis(power - 1.0)
 emission_model <- glmmTMB(spores.kg ~ poly(MeanMCE, 2) + (1|SampleID),
                           family=tweedie(link="log"), data = emission_spores, 
-                          ziformula = ~-1, 
+                          ziformula = ~1, 
                           dispformula = ~ poly(MeanMCE, 2),
                           start = list(psi = psi), map = list(psi = factor(NA)))
 summary(emission_model)
 
 family_params(emission_model)
+
+
+emission_model <- glmmTMB(TotalSpores ~ poly(MeanMCE, 2) + offset(log(RepVolume_m3)) + 
+                            offset(log(biomass_Mg)) + offset(log(Ambient_Offset)) +
+                            (1|SampleID) + (1|LB_Batch),
+                          family=nbinom2(link="log"), data = emission_spores, 
+                          ziformula = ~1)
+summary(emission_model)
 
 simulationOutput <- simulateResiduals(fittedModel = emission_model, plot = F)
 plotQQunif(simulationOutput)
@@ -153,29 +230,30 @@ plotResiduals(simulationOutput)
 testQuantiles(simulationOutput)
 
 
-library(ggeffects)
+MCE_emmeans <- emmeans(emission_model, 
+                        specs = ~MeanMCE,
+                        at = list(MeanMCE = seq(min(emission_spores$MeanMCE, na.rm = TRUE),
+                                                 max(emission_spores$MeanMCE, na.rm = TRUE),
+                                                 length.out = 50)),
+                        type = "response")
 
-# Get predictions
-pred <- ggpredict(emission_model, terms = "MeanMCE [all]")
+MCE_plot_data <- as.data.frame(MCE_emmeans)
 
-# Plot
-p <- ggplot(emission_spores, aes(x = MeanMCE, y = spores.kg)) +
-  geom_point(aes(color = SampleID), alpha = 0.6, size = 2) +
-  geom_ribbon(data = pred, aes(x = x, y = predicted, 
-                               ymin = conf.low, ymax = conf.high),
-              alpha = 0.2, inherit.aes = FALSE) +
-  geom_line(data = pred, aes(x = x, y = predicted), 
-            size = 1.2, color = "blue", inherit.aes = FALSE) +
-  scale_y_continuous(trans = "log10", 
-                     breaks = c(1e0, 1e2, 1e4, 1e6, 1e8),
-                     labels = scales::scientific) +
-  theme_minimal() +
-  theme(legend.position = "right") +
-  labs(x = "Mean MCE", 
-       y = expression(paste("Spores kg"^-1)),
-       title = "Non-linear relationship between MCE and spore emission")
 
-print(p)
+ggplot() +
+  geom_ribbon(data = MCE_plot_data, 
+              aes(x = MeanMCE, ymin = (asymp.LCL*7225)/0.03, ymax = (asymp.UCL*7225)/0.03), 
+              alpha = 0.3, fill = "blue") +
+  geom_line(data = MCE_plot_data, 
+            aes(x = MeanMCE, y = (response*7225)/0.03), 
+            size = 1.2, color = "blue") +
+  geom_point(data = emission_spores, 
+             aes(x = MeanMCE, y = TotalSpores.m3), 
+             alpha = 0.6, size = 2, color = "black") +
+  labs(x = 'MCE',
+       y = expression(Spores~m^-3),
+       title = "Spore Concentration vs MCE (Cubic Relationship)") +
+  theme_minimal()
 
 
 
@@ -193,7 +271,8 @@ bacteria <- read_csv('./Output/Output_data/FASMEE23/FASMEE23_Bacteria_PA_C.csv')
     Project = as.factor(Project),
     SampleType = as.factor(SampleType),
     Day = as.factor(Day),
-    LB_Batch = as.factor(LB_Batch))
+    LB_Batch = as.factor(LB_Batch),
+    SmokeLevel = factor(SmokeLevel, levels = c("None", "Low", "Moderate", "High")))
 
 smoke_bacteria <- bacteria %>%
   filter(Platform == "Blue" & SampleType == "Smoke")
@@ -218,10 +297,27 @@ summary(SmokeAmbient_BacteriaModel)
 
 family_params(SmokeAmbient_BacteriaModel)
 
-simulationOutput <- simulateResiduals(fittedModel = SmokeAmbient_BacteriaModel, plot = F)
-plotQQunif(simulationOutput)
-plotResiduals(simulationOutput)
-testZeroInflation(simulationOutput)
+
+SmokeAmbient_BacteriaModel <- glmmTMB(TotalCells ~ SampleType + Platform + TotalCells_FBLB + offset(log(RepVolume_m3)) +
+                                        (1|SampleID),
+                                      family=nbinom2(link="log"), data = bacteria, 
+                                      ziformula = ~1, dispformula = ~1) 
+summary(SmokeAmbient_BacteriaModel)
+
+
+SmokeAmbient_BacteriaModel <- glmmTMB(LIVECounts ~ SampleType + Platform + LiveCells_FBLB + offset(log(RepVolume_m3)) +
+                                        (1|SampleID),
+                                      family=nbinom2(link="log"), data = bacteria, 
+                                      ziformula = ~1, dispformula = ~SampleType) 
+summary(SmokeAmbient_BacteriaModel)
+
+res <- simulateResiduals(fittedModel = SmokeAmbient_BacteriaModel, plot = F)
+plotResiduals(res)
+plotQQunif(res)
+
+plotResiduals(res, bacteria$SampleType)  # Residuals by group
+testZeroInflation(res)
+testDispersion(res)
 
 
 emm_log <- emmeans(SmokeAmbient_BacteriaModel, ~ SampleType)
@@ -261,6 +357,12 @@ Smoke_model <- glmmTMB(TotalCells_Bcorr.m3 ~ poly(logPM2.5, 2) + MeanTemp_C + Me
 summary(Smoke_model)
 
 family_params(Smoke_model)
+
+Smoke_model <- glmmTMB(TotalCells ~ poly(logPM2.5, 3) + MeanTemp_C + TotalCells_FBLB + offset(log(RepVolume_m3)) + 
+                         (1|SampleID),
+                       family=nbinom2(link="log"), data = smoke_bacteria, 
+                       ziformula = ~1, dispformula = ~poly(logPM2.5, 3))
+summary(Smoke_model)
 
 simulationOutput <- simulateResiduals(fittedModel = Smoke_model, plot = F)
 plotQQunif(simulationOutput)

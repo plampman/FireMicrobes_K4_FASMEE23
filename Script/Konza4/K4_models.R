@@ -62,9 +62,20 @@ summary(SmokeAmbient_model)
 
 family_params(SmokeAmbient_model)
 
-simulationOutput <- simulateResiduals(fittedModel = SmokeAmbient_model, plot = F)
-plotQQunif(simulationOutput)
-plotResiduals(simulationOutput)
+
+SmokeAmbient_model <- glmmTMB(TotalSpores ~ SampleType + TotalSpores_FBLB + offset(log(RepVolume_m3)) + 
+                                (1|SampleID),
+                              family=nbinom2(link="log"), data = spores_pa_C, 
+                              ziformula = ~1)
+summary(SmokeAmbient_model)
+
+res <- simulateResiduals(fittedModel = SmokeAmbient_model, plot = F)
+plotResiduals(res)
+plotQQunif(res)
+
+plotResiduals(res, spores_pa_C$SampleType)  # Residuals by group
+testZeroInflation(res)
+testDispersion(res) 
 
 
 emm_log <- emmeans(SmokeAmbient_model, ~ SampleType)
@@ -90,10 +101,21 @@ summary(Smoke_model)
 
 family_params(Smoke_model)
 
-simulationOutput <- simulateResiduals(fittedModel = Smoke_model, plot = F)
-plotQQunif(simulationOutput)
-plotResiduals(simulationOutput)
-testQuantiles(simulationOutput)
+
+Smoke_model <- glmmTMB(TotalSpores ~ poly(log(MedianPM2.5_ug.m3), 3) + MeanTemp_C + TotalSpores_FBLB + offset(log(RepVolume_m3)) + 
+                         (1|SampleID),
+                       family=nbinom2(link="log"), data = smoke_spores, 
+                       ziformula = ~1)
+summary(Smoke_model)
+
+
+res <- simulateResiduals(fittedModel = Smoke_model, plot = F)
+plotResiduals(res)
+plotQQunif(res)
+
+testZeroInflation(res)
+testDispersion(res) 
+
 
 em_spores_SmokeLevel <- emmeans(SmokeAmbient_model, ~logPM2.5, at = list(logPM2.5 = 1.3, MedianMR = 4.8), type = "response")
 
@@ -233,10 +255,46 @@ summary(Smoke_BacteriaModel)
 
 family_params(Smoke_BacteriaModel)
 
+Smoke_BacteriaModel <- glmmTMB(TotalCells ~ poly(log(MedianPM2.5_ug.m3), 2) + offset(log(RepVolume_m3)) + 
+                         (1|SampleID),
+                       family=nbinom2(link="log"), data = smoke_bacteria, 
+                       ziformula = ~1)
+summary(Smoke_BacteriaModel)
+
+# The relationship between log(PM2.5) and bacterial concentration was best described by a cubic polynomial. 
+# While the cubic term was marginally significant (p = 0.105), it was necessary for model convergence, 
+# as simpler quadratic models failed to converge properly.
+
 simulationOutput <- simulateResiduals(fittedModel = Smoke_BacteriaModel, plot = F)
 plotQQunif(simulationOutput)
 plotResiduals(simulationOutput)
 testQuantiles(simulationOutput)
+
+pm25_emmeans <- emmeans(Smoke_BacteriaModel, 
+                        ~MedianPM2.5_ug.m3,  
+                        at = list(MedianPM2.5_ug.m3 = seq(min(smoke_bacteria$MedianPM2.5_ug.m3, na.rm = TRUE),
+                                                 max(smoke_bacteria$MedianPM2.5_ug.m3, na.rm = TRUE),
+                                                 length.out = 50)),
+                        type = "response")
+
+pm25_plot_data <- as.data.frame(pm25_emmeans)
+
+ggplot() +
+  geom_ribbon(data = pm25_plot_data, 
+              aes(x = MedianPM2.5_ug.m3, ymin = (asymp.LCL*7225)/0.03, ymax = (asymp.UCL*7225)/0.03), 
+              alpha = 0.3, fill = "blue") +
+  geom_line(data = pm25_plot_data, 
+            aes(x = MedianPM2.5_ug.m3, y = (response*7225)/0.03), 
+            size = 1.2, color = "blue") +
+  geom_point(data = smoke_bacteria, 
+             aes(x = MedianPM2.5_ug.m3, y = TotalBacteria.m3), 
+             alpha = 0.6, size = 2, color = "black") +
+  labs(x = expression(PM[2.5]~(μg/m^3)),
+       y = expression(Bacteria~m^-3),
+       title = "Bacteria Concentration vs PM2.5 (Cubic Relationship)") +
+  theme_minimal()
+
+
 
 
 
