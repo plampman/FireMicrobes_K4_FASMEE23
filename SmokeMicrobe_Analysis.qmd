@@ -15,19 +15,28 @@ format:
     embed-resources: true
     code-summary: "Show code"
     code-tools: true
-  pdf: default
+    margin-left: 2cm
+    margin-right: 2cm
+    code-block-width: 100%
+  pdf:
+    margin-left: 1.75cm
+    margin-right: 1.75cm
+    code-block-width: 100%
 ---
-#| include: false
 
-options(width = 110)
+```{r setup, include=FALSE}
+options(width = 80)  # Reduced from 110 to prevent text overflow
 knitr::opts_chunk$set(
   dpi = 600,           # Higher DPI for better resolution
   fig.width = 7,      # Width in inches
   fig.height = 7,      # Height in inches
-  out.width = "100%"   # How wide the image appears in the HTML
+  out.width = "100%",   # How wide the image appears in the HTML
+  tidy = TRUE,         # Tidy the code
+  tidy.opts = list(width.cutoff = 80)  # Set code width cutoff
 )
+```
 
-```{r}
+```{r libraries, include=FALSE}
 library(tidyverse)
 library(emmeans)
 library(glmmTMB)
@@ -35,8 +44,10 @@ library(DHARMa)
 ```
 
 # Konza 4 spores and bacteria--Tallgrass Prairie wildland fire microbial emissions
-```{r}
+```{r data-load, echo=FALSE}
 spores_pa_C <- read_csv('./Output/Output_data/K4/k4_Spores_PA_C.csv') %>%
+#select(SampleID, TotalSpores, Slide_RepVolume_L, SmokeLevel, LB_Batch, Day,
+#Median_PM2.5_ug.m3, TotalSpores_FBLBcorr.m3, MeanRH, MeanTemp_C, MeanMCE) %>%
   mutate(
     Project = as.factor(Project),
     SampleType = as.factor(SampleType),
@@ -46,16 +57,21 @@ spores_pa_C <- read_csv('./Output/Output_data/K4/k4_Spores_PA_C.csv') %>%
 
 smoke_spores <- spores_pa_C %>%
   filter(SampleType == "Smoke")
+
+# Print summary with reduced width
+print(summary(spores_pa_C, digits = 3, maxsum = 100), width = 80)
 ```
 
 ## Spore concentration mixed Models
-### Ambient vs. Smoke
-### Smoke levels based on PM2.5 concentration ranges
-```{r}
-SporeCatModel <- glmmTMB(TotalSpores ~ SmokeLevel + offset(log(Slide_RepVolume_L)) + 
-                           (1|SampleID) + (1|LB_Batch),
-                         family=nbinom2(link="log"), data = spores_pa_C, 
-                         ziformula = ~1)
+### Ambient (no smoke) vs. Smoke levels based on PM2.5 concentration ranges
+```{r K4 spores vs smoke levels}
+SporeCatModel <- glmmTMB(
+  TotalSpores ~ SmokeLevel + offset(log(Slide_RepVolume_L)) + 
+    (1|SampleID) + (1|LB_Batch),
+  family = nbinom2(link = "log"), 
+  data = spores_pa_C, 
+  ziformula = ~1
+)
 summary(SporeCatModel)
 
 res <- simulateResiduals(fittedModel = SporeCatModel, plot = FALSE)
@@ -103,36 +119,37 @@ sig_bars$annotation <- ifelse(
 )
 ```
 
-```{r}
-#| label: spore-concentrations
-#| fig-cap: "Spore concentrations by smoke level with significance bars"
+```{r spore-concentrations, fig.cap="Spore concentrations by smoke level with significance bars"}
 
 p1 <- ggplot(spore_cat, aes(x = SmokeLevel, y = Spores.m3)) +
     geom_point(data = spores_pa_C, 
              aes(x = SmokeLevel, y = TotalSpores_FBLBcorr.m3), 
              position = position_jitter(width = 0.1), 
              alpha = 0.5, size = 2, color = "#0072B2") +
-  geom_violin(data = spores_pa_C, aes(x = SmokeLevel, y = TotalSpores_FBLBcorr.m3), 
+  geom_violin(data = spores_pa_C, 
+  aes(x = SmokeLevel, y = TotalSpores_FBLBcorr.m3), 
               fill = NA, color = "black", width = 0.8, alpha = 0.5) +
   geom_col(fill = "#0072B2", alpha = 0.6) +
   geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper), 
-                width = 0.1, color = "black", linewidth = 1.2) +
+                width = 0.1, color = "black", linewidth = 0.9) +
   labs(x = expression(paste("PM"[2.5], " μg/m"^3, " range")), 
        y = expression(paste("Spores/m"^3)),
-       title = expression(paste("Wildland Fire vs. Ambient Tallgrass Prairie Fungal Spores by ", "PM"[2.5], " Range"))) +
+       title = expression(
+        paste("Smoke vs. Ambient Tallgrass Prairie Fungal Spores by ", 
+        "PM"[2.5], " Range"))) +
   theme_bw() +
   theme(text = element_text(size = 10),
         plot.title = element_text(hjust = 0.5, face = "bold"),
         axis.text.x = element_text(angle = 0, hjust = 0.5)) +
   geom_segment(data = sig_bars, 
                aes(x = x, xend = xend, y = y, yend = y),
-               linewidth = 0.7) +
+               linewidth = 0.5) +
   geom_segment(data = sig_bars,
-               aes(x = x, xend = x, y = y, yend = y - max_height * 0.02),
-               linewidth = 0.7) +
+               aes(x = x, xend = x, y = y, yend = y - max_height * 0.05),
+               linewidth = 0.5) +
   geom_segment(data = sig_bars,
-               aes(x = xend, xend = xend, y = y, yend = y - max_height * 0.02),
-               linewidth = 0.7) +
+               aes(x = xend, xend = xend, y = y, yend = y - max_height * 0.05),
+               linewidth = 0.5) +
   geom_text(data = sig_bars,
             aes(x = (x + xend) / 2, y = y + max_height * 0.02, label = annotation),
             size = 3.2, vjust = 0, parse = TRUE) +
@@ -142,14 +159,10 @@ p1 <- ggplot(spore_cat, aes(x = SmokeLevel, y = Spores.m3)) +
 print(p1)
 ```
 
-```{r}
-#| label: model-summary
-#| echo: false
-summary(SporeCatModel)
+```{r Marginal means, echo=FALSE}
+print(spore_cat)
 ```
 
-```{r}
-#| label: contrast-results
-#| echo: false
+```{r contrast-results, echo=FALSE}
 print(rate_ratios_vs_none)
 ```
