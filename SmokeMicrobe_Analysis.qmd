@@ -1,0 +1,226 @@
+---
+title: "Smoke Bioaerosol Concentration and Emission Mixed Models"
+format:
+  html:
+    code-fold: true
+    df-print: paged
+    toc: true
+    toc-depth: 2
+    toc-location: left
+    toc-title: "Contents"
+    theme: united
+    highlight-style: tango
+    smooth-scroll: true
+  pdf: default
+  format:
+  html:
+    code-fold: true
+    code-summary: "Show code"  # Custom text for code fold button
+    code-tools: true           # Adds code tools menu
+    df-print: paged
+    toc: true
+    toc-depth: 2
+    toc-location: left
+    theme: united
+    highlight-style: tango
+    smooth-scroll: true
+    fig-cap-location: bottom   # Figure caption placement
+    embed-resources: true      # Self-contained HTML file
+---
+#| include: false
+
+options(width = 110)
+knitr::opts_chunk$set(
+  dpi = 600,           # Higher DPI for better resolution
+  fig.width = 7,      # Width in inches
+  fig.height = 5,      # Height in inches
+  out.width = "100%"   # How wide the image appears in the HTML
+)
+
+```{r}
+
+library(tidyverse)
+library(emmeans)
+library(glmmTMB)
+library(DHARMa)
+```
+# Konza 4 spores and bacteria--Tallgrass Prairie wildland fire microbial emissions
+```{r}
+spores_pa_C <- read_csv('./Output/Output_data/K4/k4_Spores_PA_C.csv') %>%
+  mutate(
+    Project = as.factor(Project),
+    SampleType = as.factor(SampleType),
+    Day = as.factor(Day),
+    LB_Batch = as.factor(LB_Batch),
+    SmokeLevel = factor(SmokeLevel, levels = c("None", "Low", "High")))
+
+smoke_spores <- spores_pa_C %>%
+  filter(SampleType == "Smoke")
+  ```
+  ## Spore concentration mixed Models
+  ### Ambient vs. Smoke
+  ### Smoke levels based on PM2.5 concentration ranges
+  ```{r}
+SporeCatModel <- glmmTMB(TotalSpores ~ SmokeLevel + offset(log(Slide_RepVolume_L)) + 
+                           (1|SampleID) + (1|LB_Batch),
+                         family=nbinom2(link="log"), data = spores_pa_C, 
+                         ziformula = ~1)
+summary(SporeCatModel)
+
+#| label: model-diagnostics
+#| fig-cap: "Model diagnostic plots"
+
+# Close all devices one at a time
+while (length(dev.list()) > 0) {
+  dev.off()
+}
+
+# Create new interactive window
+windows()
+
+# List all open plot devices
+print(dev.list())
+
+res <- simulateResiduals(fittedModel = SporeCatModel, plot = FALSE)
+
+# Create diagnostic plots
+plotResiduals(res)
+plotQQunif(res)
+plotResiduals(res, spores_pa_C$SmokeLevel)  # Residuals by group
+testZeroInflation(res)
+testDispersion(res) 
+
+
+emm_log <- emmeans(SporeCatModel, ~ SmokeLevel)
+emm_log
+
+emm_response <- emmeans(SporeCatModel, ~ SmokeLevel, type = "response")
+emm_response
+
+rate_ratios_vs_none <- contrast(emm_log, method = "trt.vs.ctrl", ref = "None", type = "response")
+rate_ratios_vs_none
+
+spore_cat <- as.data.frame(emm_response) %>% 
+  mutate(
+    Spores.m3 = (response*7225)/0.03,
+    CI_lower = (asymp.LCL * 7225) / 0.03,
+    CI_upper = (asymp.UCL * 7225) / 0.03
+    )
+
+# Create contrast dataframe automatically from emmeans output
+contrast_df <- as.data.frame(rate_ratios_vs_none)
+
+# Create significance bars 
+sig_bars <- data.frame(
+  x = c(1, 1),  # Both start from position 1 (None)
+  xend = c(2, 3),  # End at positions 2 (Low) and 3 (High)
+  pair = c("Low / None", "High / None"),
+  stringsAsFactors = FALSE
+)
+
+# Extract p-values using contrast names
+sig_bars$p_value <- sapply(sig_bars$pair, function(pair) {
+  idx <- which(contrast_df$contrast == pair)
+  if(length(idx) > 0) {
+    return(contrast_df$p.value[idx])
+  } else {
+    return(1.0) 
+  }
+})
+
+# Calculate maximum height for positioning significance bars
+max_height <- max(spore_cat$CI_upper, na.rm = TRUE)
+
+# Position bars at different heights to avoid overlap
+sig_bars$y <- max_height * c(3.1, 3.3)
+
+# Debugging: print contrast_df and sig_bars to check matching
+print("contrast_df:")
+print(contrast_df)
+print("sig_bars:")
+print(sig_bars)
+
+# Ensure matching and correct label assignment
+sig_bars$label <- sapply(sig_bars$pair, function(pair) {
+  idx <- which(trimws(contrast_df$contrast) == trimws(pair))
+  if (length(idx) > 0) {
+    p <- contrast_df$p.value[idx]
+    if (p < 0.001) {
+      return("***")
+    } else if (p < 0.01) {
+      return("**")
+    } else if (p < 0.05) {
+      return("*")
+    } else {
+      return("ns")
+    }
+  } else {
+    return("ns")
+  }
+})
+
+# Debugging: print updated sig_bars
+print("Updated sig_bars with labels:")
+print(sig_bars)
+
+# Add annotation for test and p-value in plotmath format for parse=TRUE
+sig_bars$annotation <- paste0(
+  "italic(P)[dunnettx-adj]==", signif(sig_bars$p_value, 2)
+)
+
+#| label: spore-concentrations
+#| fig-cap: "Spore concentrations by smoke level with significance bars"
+
+# Create the main plot
+p1 <- ggplot(spore_cat, aes(x = SmokeLevel, y = Spores.m3)) +
+    geom_point(data = spores_pa_C, 
+             aes(x = SmokeLevel, y = TotalSpores_FBLBcorr.m3), 
+             position = position_jitter(width = 0.1), 
+             alpha = 0.5, size = 2, color = "#0072B2") +
+  geom_violin(data = spores_pa_C, aes(x = SmokeLevel, y = TotalSpores_FBLBcorr.m3), 
+              fill = NA, color = "black", width = 0.8, alpha = 0.5) +
+  geom_col(fill = "#0072B2", alpha = 0.6) +
+  geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper), 
+                width = 0.1, color = "black", linewidth = 1.2) +
+  labs(x = expression(paste("PM"[2.5], " μg/m"^3, " range")), 
+       y = expression(paste("Spores/m"^3)),
+       title = expression(paste("Wildland Fire vs. Ambient Tallgrass Prairie Fungal Spores by ", "PM"[2.5], " Range"))) +
+  theme_bw() +
+  theme(text = element_text(size = 10),
+        plot.title = element_text(hjust = 0.5, face = "bold"),
+        axis.text.x = element_text(angle = 0, hjust = 0.5)) +
+  geom_segment(data = sig_bars, 
+               aes(x = x, xend = xend, y = y, yend = y),
+               linewidth = 0.7) +
+  geom_segment(data = sig_bars,
+               aes(x = x, xend = x, y = y, yend = y - max_height * 0.02),
+               linewidth = 0.7) +
+  geom_segment(data = sig_bars,
+               aes(x = xend, xend = xend, y = y, yend = y - max_height * 0.02),
+               linewidth = 0.7) +
+  # Add annotation for test and p-value above the significance bar
+  geom_text(data = sig_bars,
+            aes(x = (x + xend) / 2, y = y + max_height * 0.02, label = annotation),
+            size = 3.2, vjust = 0, parse = TRUE) +
+  scale_x_discrete(labels = c("None\n(<20)", "Low\n(20-400)", "High\n(≥400)")) +
+  coord_cartesian(ylim = c(0, max(spores_pa_C$TotalSpores_FBLBcorr.m3 * 0.5)))
+
+# Display the plot
+print(p1)
+```
+
+```{r}
+#| label: model-summary
+#| echo: false
+
+# Display model summary
+summary(SporeCatModel)
+```
+
+```{r}
+#| label: contrast-results
+#| echo: false
+
+# Display contrast results
+print(rate_ratios_vs_none)
+```
