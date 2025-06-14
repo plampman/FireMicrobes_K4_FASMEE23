@@ -11,21 +11,11 @@ format:
     theme: united
     highlight-style: tango
     smooth-scroll: true
+    fig-cap-location: bottom
+    embed-resources: true
+    code-summary: "Show code"
+    code-tools: true
   pdf: default
-  format:
-  html:
-    code-fold: true
-    code-summary: "Show code"  # Custom text for code fold button
-    code-tools: true           # Adds code tools menu
-    df-print: paged
-    toc: true
-    toc-depth: 2
-    toc-location: left
-    theme: united
-    highlight-style: tango
-    smooth-scroll: true
-    fig-cap-location: bottom   # Figure caption placement
-    embed-resources: true      # Self-contained HTML file
 ---
 #| include: false
 
