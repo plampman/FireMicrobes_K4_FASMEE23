@@ -28,11 +28,9 @@ format:
 options(width = 80)  # Reduced from 110 to prevent text overflow
 knitr::opts_chunk$set(
   dpi = 600,           # Higher DPI for better resolution
-  fig.width = 7,      # Width in inches
-  fig.height = 7,      # Height in inches
-  out.width = "100%",   # How wide the image appears in the HTML
-  tidy = TRUE,         # Tidy the code
-  tidy.opts = list(width.cutoff = 80)  # Set code width cutoff
+  fig.width = 6,      # Width in inches
+  fig.height = 6,      # Height in inches
+  out.width = "100%"   # How wide the image appears in the HTML
 )
 ```
 
@@ -43,7 +41,75 @@ library(glmmTMB)
 library(DHARMa)
 ```
 
-# Konza 4 spores and bacteria--Tallgrass Prairie wildland fire microbial emissions
+# Study Overview
+
+## Site Description and Sampling Design
+
+This study examined airborne microbes (fungi and bacteria) in ambient air and wildland fire smoke across two distinct ecosystems:
+
+- **Utah subalpine** (FASMEE23): Subalpine forest fire regime
+- **Kansas Tallgrass Prairie** (Konza4): Grassland fire regime
+
+Samples were collected using drone-mounted equipment before fire ignition (ambient conditions) and during active burning (smoke conditions). Air and smoke samples were collected using filters and compensating pumps that drew specific volumes of air through the sample filters.
+
+## Sample Collection Protocol
+
+**Filter handling**: Before and after each sample collection, filters were placed and removed from sampling devices in situ using a mobile laboratory box to minimize air contamination and external influence on sample filters.
+
+**Quality control**: Filter blanks were collected in situ to quantify contamination during filter handling and processing.
+
+**Concurrent measurements**: Each drone flight simultaneously collected meteorological data, particulate matter (PM) concentrations, and carbon sensor data. *Note: Carbon sensor malfunctions resulted in incomplete carbon data for some samples.*
+
+## Microbial Enumeration Methods
+
+Microbes were quantified using epifluorescence microscopy after fluorescent staining:
+
+**Counting protocol**:
+- Magnification: 1000x
+- Fields of view (FOV): 40 random locations per filter
+- Filter area: ~226.98 mm²
+- FOV area at 1000x: ~0.031 mm²
+- Total possible FOVs per filter: 7,225
+
+
+**Staining approaches**:
+- **Bacteria**: Two-part viability stain allowing quantification of total bacteria, live bacteria, and dead bacteria
+- **Fungi**: Single stain for spore enumeration (viability not distinguishable)
+
+**Laboratory blanks**: Lab blanks were processed with each batch of staining solutions to account for contamination introduced during the staining process.
+
+# Research Questions
+
+1. **Microbial abundance across smoke conditions**: How do microbial concentrations in ambient air differ from concentrations in smoke of varying intensity?
+   - Smoke intensity classified using PM<sub>2.5</sub> concentrations from onboard sensors
+
+2. **Environmental drivers**: Do smoke-associated microbes correlate with meteorological variables or carbon concentrations?
+
+3. **Bacterial viability**: Does the ratio of live to total bacteria differ between ambient and smoke conditions?
+
+4. **Site comparison**: Are there differences in microbial abundances between study sites under both ambient and smoke conditions?
+
+5. **Emission factors**: Using the carbon data, we can transform our microbe counts into the number of microbes emitted by a certain mass of fuel burning (e.g. #cells emitted per kilogram of biomass burning)---Known as emission factors (EFs)---Do EFs correlate with combustion efficiency (smoldering vs. flaming combustion)?
+
+# Statistical Analysis Approach
+
+## Generalized Linear Mixed Models (GLMMs)
+
+**Response variable**: FOV count data (Research Questions 1-4)
+**Offset**: log(volume sampled) to account for varying sample volumes
+
+**Random effects structure**:
+- Random intercept for SampleID (accounts for multiple FOVs from the same sample)
+- Random intercept for Lab Blank batch (accounts for batch-specific contamination levels during sample processing)
+
+*Note: Research Question 5 (emission factors) will require a modified modeling approach incorporating:
+- Averaging FOV counts across the 40 FOVs, scaling to the total filter area, then normalizing to the air volume sampled and transforming based on carbon data.*
+
+# Modeling for Research Question #1: Konza4 spore abundance in ambient vs. smoke conditions
+## Starting with spores for Konza4
+
+## Data summary
+
 ```{r data-load, echo=FALSE}
 spores_pa_C <- read_csv('./Output/Output_data/K4/k4_Spores_PA_C.csv') %>%
 #select(SampleID, TotalSpores, Slide_RepVolume_L, SmokeLevel, LB_Batch, Day,
@@ -62,8 +128,7 @@ smoke_spores <- spores_pa_C %>%
 print(summary(spores_pa_C, digits = 3, maxsum = 100), width = 80)
 ```
 
-## Spore concentration mixed Models
-### Ambient (no smoke) vs. Smoke levels based on PM2.5 concentration ranges
+## GLMM model for Konza4 spores and DHARMa diagnostics for assesment 
 ```{r K4 spores vs smoke levels}
 SporeCatModel <- glmmTMB(
   TotalSpores ~ SmokeLevel + offset(log(Slide_RepVolume_L)) + 
@@ -81,19 +146,21 @@ plotResiduals(res, spores_pa_C$SmokeLevel)  # Residuals by group
 testZeroInflation(res)
 testDispersion(res) 
 
+# Calculate marginal means and contrasts
 emm_log <- emmeans(SporeCatModel, ~ SmokeLevel)
 emm_response <- emmeans(SporeCatModel, ~ SmokeLevel, type = "response")
 rate_ratios_vs_none <- contrast(emm_log, method = "trt.vs.ctrl", ref = "None", type = "response")
 
+# Create prediction dataframe
 spore_cat <- as.data.frame(emm_response) %>% 
   mutate(
     Spores.m3 = (response*7225)/0.03,
     CI_lower = (asymp.LCL * 7225) / 0.03,
     CI_upper = (asymp.UCL * 7225) / 0.03
-    )
+  )
 
+# Create significance bars
 contrast_df <- as.data.frame(rate_ratios_vs_none)
-
 sig_bars <- data.frame(
   x = c(1, 1),
   xend = c(2, 3),
@@ -119,24 +186,34 @@ sig_bars$annotation <- ifelse(
 )
 ```
 
-```{r spore-concentrations, fig.cap="Spore concentrations by smoke level with significance bars"}
+## Predictions from Konza4 spore GLMM model
+```{r Marginal means, echo=FALSE}
+print(spore_cat)
+```
 
+## Ratios from Konza4 spore GLMM model
+```{r contrast-results, echo=FALSE}
+print(rate_ratios_vs_none)
+```
+
+## Plotting Konza4 spore model results with raw data as points and violin plots
+```{r Plotting model results, fig.cap="Konza 4 Spore GLMM predictions and raw data by smoke level with significance bars"}
 p1 <- ggplot(spore_cat, aes(x = SmokeLevel, y = Spores.m3)) +
     geom_point(data = spores_pa_C, 
              aes(x = SmokeLevel, y = TotalSpores_FBLBcorr.m3), 
              position = position_jitter(width = 0.1), 
              alpha = 0.5, size = 2, color = "#0072B2") +
   geom_violin(data = spores_pa_C, 
-  aes(x = SmokeLevel, y = TotalSpores_FBLBcorr.m3), 
+              aes(x = SmokeLevel, y = TotalSpores_FBLBcorr.m3), 
               fill = NA, color = "black", width = 0.8, alpha = 0.5) +
   geom_col(fill = "#0072B2", alpha = 0.6) +
   geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper), 
-                width = 0.1, color = "black", linewidth = 0.9) +
+                width = 0.2, color = "black", linewidth = 1.1) +
   labs(x = expression(paste("PM"[2.5], " μg/m"^3, " range")), 
        y = expression(paste("Spores/m"^3)),
        title = expression(
-        paste("Smoke vs. Ambient Tallgrass Prairie Fungal Spores by ", 
-        "PM"[2.5], " Range"))) +
+         paste("Smoke vs. Ambient Tallgrass Prairie Fungal Spores by ", 
+         "PM"[2.5], " Range"))) +
   theme_bw() +
   theme(text = element_text(size = 10),
         plot.title = element_text(hjust = 0.5, face = "bold"),
@@ -153,16 +230,136 @@ p1 <- ggplot(spore_cat, aes(x = SmokeLevel, y = Spores.m3)) +
   geom_text(data = sig_bars,
             aes(x = (x + xend) / 2, y = y + max_height * 0.02, label = annotation),
             size = 3.2, vjust = 0, parse = TRUE) +
-  scale_x_discrete(labels = c("None\n(<20)", "Low\n(20-400)", "High\n(≥400)")) +
+  scale_x_discrete(labels = c("None\n(<20)", "Low\n(20-400)", "High\n(>400)")) +
   coord_cartesian(ylim = c(0, max(spores_pa_C$TotalSpores_FBLBcorr.m3 * 0.5)))
 
 print(p1)
 ```
 
-```{r Marginal means, echo=FALSE}
+# Modeling for Research Question #1: FASMEE23 spore abundance in ambient vs. smoke conditions
+## Starting with spores for FASMEE23
+
+## Data summary
+```{r FASMEE23 spores}
+spores_pa_C <- read.csv('./Output/Output_data/FASMEE23/FASMEE23_Spores_PA_C.csv') %>%
+  filter(Platform == "Blue" | (Platform == "Red" & SampleType == "Ambient")) %>%
+  mutate(
+    Project = as.factor(Project),
+    SampleType = as.factor(SampleType),
+    Day = as.factor(Day),
+    LB_Batch = as.factor(LB_Batch),
+    SmokeLevel = if_else(Platform == "Red", "None", SmokeLevel),
+    SmokeLevel = factor(SmokeLevel, levels = c("None", "Low", "High"))) 
+
+
+smoke_spores <- spores_pa_C %>%
+  filter(Platform == "Blue" & SampleType == "Smoke")
+
+summary(spores_pa_C)
+```
+
+## GLMM model for FASMEE23 spores and DHARMa diagnostics for assessment
+```{r FASMEE23 spore smoke level GLMM}
+SporeCatModel <- glmmTMB(TotalSpores ~ SmokeLevel + offset(log(RepVolume_L)) + 
+                          (1|Platform:SampleID) + (1|LB_Batch),
+                        family=nbinom2(link="log"), data = spores_pa_C, 
+                        ziformula = ~1, dispformula = ~SmokeLevel)
+summary(SporeCatModel)
+
+# DHARMa diagnostics
+res <- simulateResiduals(fittedModel = SporeCatModel, plot = FALSE)
+plotResiduals(res)
+plotQQunif(res)
+plotResiduals(res, spores_pa_C$SmokeLevel)  # Residuals by group
+testZeroInflation(res)
+testDispersion(res) 
+
+# Calculate marginal means and contrasts
+emm_log <- emmeans(SporeCatModel, ~ SmokeLevel)
+emm_response <- emmeans(SporeCatModel, ~ SmokeLevel, type = "response")
+rate_ratios_vs_none <- contrast(emm_log, method = "trt.vs.ctrl", ref = "None", type = "response")
+
+# Create prediction dataframe
+spore_cat <- as.data.frame(emm_response) %>% 
+  mutate(
+    Spores.m3 = (response*7225)/0.03,
+    CI_lower = (asymp.LCL * 7225) / 0.03,
+    CI_upper = (asymp.UCL * 7225) / 0.03
+  )
+
+# Create significance bars
+contrast_df <- as.data.frame(rate_ratios_vs_none)
+sig_bars <- data.frame(
+  x = c(1, 1),
+  xend = c(2, 3),
+  pair = c("Low / None", "High / None"),
+  stringsAsFactors = FALSE
+)
+
+sig_bars$p_value <- sapply(sig_bars$pair, function(pair) {
+  idx <- which(contrast_df$contrast == pair)
+  if(length(idx) > 0) {
+    return(contrast_df$p.value[idx])
+  } else {
+    return(1.0) 
+  }
+})
+
+max_height <- max(spore_cat$CI_upper, na.rm = TRUE)
+sig_bars$y <- max_height * c(3.1, 3.3)
+sig_bars$annotation <- ifelse(
+  is.na(sig_bars$p_value),
+  'plain("")',
+  paste0("italic(P)[dunnettx-adj]==", signif(sig_bars$p_value, 2))
+)
+```
+
+## Predictions from FASMEE23 spore GLMM model
+```{r FASMEE23 Marginal means, echo=FALSE}
 print(spore_cat)
 ```
 
-```{r contrast-results, echo=FALSE}
+## Ratios from FASMEE23 spore GLMM model
+```{r FASMEE23 contrast-results, echo=FALSE}
 print(rate_ratios_vs_none)
+```
+
+## Plotting FASMEE23 spore model results with raw data as points and violin plots
+```{r FASMEE23 Plotting model results, fig.cap="FASMEE23 Spore GLMM predictions and raw data by smoke level with significance bars"}
+p1 <- ggplot(spore_cat, aes(x = SmokeLevel, y = Spores.m3)) +
+    geom_point(data = spores_pa_C, 
+             aes(x = SmokeLevel, y = TotalSpores_FBLBcorr.m3), 
+             position = position_jitter(width = 0.1), 
+             alpha = 0.5, size = 2, color = "#0072B2") +
+  geom_violin(data = spores_pa_C, 
+              aes(x = SmokeLevel, y = TotalSpores_FBLBcorr.m3), 
+              fill = NA, color = "black", width = 0.8, alpha = 0.5) +
+  geom_col(fill = "#0072B2", alpha = 0.6) +
+  geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper), 
+                width = 0.2, color = "black", linewidth = 1.1) +
+  labs(x = expression(paste("PM"[2.5], " μg/m"^3, " range")), 
+       y = expression(paste("Spores/m"^3)),
+       title = expression(
+         paste("Smoke vs. Ambient Subalpine Forest Fungal Spores by ", 
+         "PM"[2.5], " Range"))) +
+  theme_bw() +
+  theme(text = element_text(size = 10),
+        plot.title = element_text(hjust = 0.5, face = "bold"),
+        axis.text.x = element_text(angle = 0, hjust = 0.5)) +
+  geom_segment(data = sig_bars, 
+               aes(x = x, xend = xend, y = y, yend = y),
+               linewidth = 0.5) +
+  geom_segment(data = sig_bars,
+               aes(x = x, xend = x, y = y, yend = y - max_height * 0.05),
+               linewidth = 0.5) +
+  geom_segment(data = sig_bars,
+               aes(x = xend, xend = xend, y = y, yend = y - max_height * 0.05),
+               linewidth = 0.5) +
+  geom_text(data = sig_bars,
+            aes(x = (x + xend) / 2, y = y + max_height * 0.02, label = annotation),
+            size = 3.2, vjust = 0, parse = TRUE) +
+  scale_x_discrete(labels = c("None\n(<20)", "Low\n(20-400)", "High\n(>400)")) +
+  coord_cartesian(ylim = c(0, max(spores_pa_C$TotalSpores_FBLBcorr.m3 * 0.5)))
+
+print(p1)
 ```
