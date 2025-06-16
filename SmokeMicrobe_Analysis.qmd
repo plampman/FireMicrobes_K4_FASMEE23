@@ -111,9 +111,9 @@ Microbes were quantified using epifluorescence microscopy after fluorescent stai
 ## Data summary
 
 ```{r data-load, echo=FALSE}
-spores_pa_C <- read_csv('./Output/Output_data/K4/k4_Spores_PA_C.csv') %>%
-#select(SampleID, TotalSpores, Slide_RepVolume_L, SmokeLevel, LB_Batch, Day,
-#Median_PM2.5_ug.m3, TotalSpores_FBLBcorr.m3, MeanRH, MeanTemp_C, MeanMCE) %>%
+Konza4_spores_pa_C <- read_csv('./Output/Output_data/K4/k4_Spores_PA_C.csv') %>%
+  select(Project, SampleID, TotalSpores, RepVolume_L = Slide_RepVolume_L, SmokeLevel, LB_Batch, Day,
+         MedianMR, MedianPM2.5_ug.m3, MedianTemp_C, TotalSpores_FBLBcorr.m3, SampleType) %>%
   filter(SampleType != "FieldBlank" & SampleType != "LabBlank") %>%
   mutate(
     Project = as.factor(Project),
@@ -124,23 +124,23 @@ spores_pa_C <- read_csv('./Output/Output_data/K4/k4_Spores_PA_C.csv') %>%
     filter(SampleID != "14A") # remove sample 14A because it was from a different fuel type (juniper trees torching)
 
 # Print summary with reduced width
-print(summary(spores_pa_C, digits = 3, maxsum = 100), width = 80)
+print(summary(Konza4_spores_pa_C, digits = 3, maxsum = 100), width = 80)
 ```
 
 ## GLMM model for Konza4 spores and DHARMa diagnostics for assesment 
 ```{r K4 spores vs smoke levels}
 Konza4_SporeCatModel <- glmmTMB(
-  TotalSpores ~ SmokeLevel + offset(log(Slide_RepVolume_L)) + 
+  TotalSpores ~ SmokeLevel + offset(log(RepVolume_L)) + 
     (1|LB_Batch/SampleID),
   family = nbinom2(link = "log"), 
-  data = spores_pa_C, 
+  data = Konza4_spores_pa_C, 
   ziformula = ~-1)
 summary(Konza4_SporeCatModel)
 
 res <- simulateResiduals(fittedModel = Konza4_SporeCatModel, plot = FALSE)
 plotResiduals(res)
 plotQQunif(res)
-plotResiduals(res, spores_pa_C$SmokeLevel)  # Residuals by group
+plotResiduals(res, Konza4_spores_pa_C$SmokeLevel)  # Residuals by group
 testZeroInflation(res)
 testDispersion(res) 
 
@@ -197,11 +197,11 @@ print(rate_ratios_vs_none)
 ## Plotting Konza4 spore model results with raw data as points and violin plots
 ```{r Plotting model results, fig.cap="Konza 4 Spore GLMM predictions and raw data by smoke level with significance bars"}
 p1 <- ggplot(spore_cat, aes(x = SmokeLevel, y = Spores.m3)) +
-    geom_point(data = spores_pa_C, 
+    geom_point(data = Konza4_spores_pa_C, 
              aes(x = SmokeLevel, y = TotalSpores_FBLBcorr.m3), 
              position = position_jitter(width = 0.1), 
              alpha = 0.5, size = 2, color = "#0072B2") +
-  geom_violin(data = spores_pa_C, 
+  geom_violin(data = Konza4_spores_pa_C, 
               aes(x = SmokeLevel, y = TotalSpores_FBLBcorr.m3), 
               fill = NA, color = "black", width = 0.8, alpha = 0.5) +
   geom_col(fill = "#0072B2", alpha = 0.6) +
@@ -229,7 +229,7 @@ p1 <- ggplot(spore_cat, aes(x = SmokeLevel, y = Spores.m3)) +
             aes(x = (x + xend) / 2, y = y + max_height * 0.02, label = annotation),
             size = 3.2, vjust = 0, parse = TRUE) +
   scale_x_discrete(labels = c("None\n(<20)", "Low\n(20-400)", "High\n(>400)")) +
-  coord_cartesian(ylim = c(0, max(spores_pa_C$TotalSpores_FBLBcorr.m3 * 0.5)))
+  coord_cartesian(ylim = c(0, max(Konza4_spores_pa_C$TotalSpores_FBLBcorr.m3 * 0.5)))
 
 print(p1)
 ```
@@ -263,7 +263,9 @@ Konza4 shows a strong and consistent increase in spore concentrations under both
 
 ## Data summary
 ```{r FASMEE23 spores}
-spores_pa_C <- read.csv('./Output/Output_data/FASMEE23/FASMEE23_Spores_PA_C.csv') %>%
+FASMEE23_spores_pa_C <- read.csv('./Output/Output_data/FASMEE23/FASMEE23_Spores_PA_C.csv') %>%
+  select(Project, SampleID, TotalSpores, RepVolume_L, SmokeLevel, LB_Batch, Day,
+         MedianMR, MedianPM2.5_ug.m3, MedianTemp_C, TotalSpores_FBLBcorr.m3, SampleType, Platform) %>%
   filter(SampleType != "FieldBlank" & SampleType != "LabBlank") %>%
   filter(Platform == "Blue" | (Platform == "Red" & SampleType == "Ambient")) %>%
   mutate(
@@ -274,15 +276,14 @@ spores_pa_C <- read.csv('./Output/Output_data/FASMEE23/FASMEE23_Spores_PA_C.csv'
     SmokeLevel = if_else(Platform == "Red", "None", SmokeLevel),
     SmokeLevel = factor(SmokeLevel, levels = c("None", "Low", "High"))) 
 
-
-summary(spores_pa_C)
+summary(FASMEE23_spores_pa_C)
 ```
 
 ## GLMM model for FASMEE23 spores and DHARMa diagnostics for assessment
 ```{r FASMEE23 spore smoke level GLMM}
 FASMEE23_SporeCatModel <- glmmTMB(TotalSpores ~ SmokeLevel + offset(log(RepVolume_L)) + 
                           (1|Platform:SampleID) + (1|LB_Batch),
-                        family=nbinom2(link="log"), data = spores_pa_C, 
+                        family=nbinom2(link="log"), data = FASMEE23_spores_pa_C, 
                         ziformula = ~1, dispformula = ~SmokeLevel)
 summary(FASMEE23_SporeCatModel)
 
@@ -290,7 +291,7 @@ summary(FASMEE23_SporeCatModel)
 res <- simulateResiduals(fittedModel = FASMEE23_SporeCatModel, plot = FALSE)
 plotResiduals(res)
 plotQQunif(res)
-plotResiduals(res, spores_pa_C$SmokeLevel)  # Residuals by group
+plotResiduals(res, FASMEE23_spores_pa_C$SmokeLevel)  # Residuals by group
 testZeroInflation(res)
 testDispersion(res) 
 
@@ -347,11 +348,11 @@ print(rate_ratios_vs_none)
 ## Plotting FASMEE23 spore model results with raw data as points and violin plots
 ```{r FASMEE23 Plotting model results, fig.cap="FASMEE23 Spore GLMM predictions and raw data by smoke level with significance bars"}
 p1 <- ggplot(spore_cat, aes(x = SmokeLevel, y = Spores.m3)) +
-    geom_point(data = spores_pa_C, 
+    geom_point(data = FASMEE23_spores_pa_C, 
              aes(x = SmokeLevel, y = TotalSpores_FBLBcorr.m3), 
              position = position_jitter(width = 0.1), 
              alpha = 0.5, size = 2, color = "#0072B2") +
-  geom_violin(data = spores_pa_C, 
+  geom_violin(data = FASMEE23_spores_pa_C, 
               aes(x = SmokeLevel, y = TotalSpores_FBLBcorr.m3), 
               fill = NA, color = "black", width = 0.8, alpha = 0.5) +
   geom_col(fill = "#0072B2", alpha = 0.6) +
@@ -379,7 +380,7 @@ p1 <- ggplot(spore_cat, aes(x = SmokeLevel, y = Spores.m3)) +
             aes(x = (x + xend) / 2, y = y + max_height * 0.02, label = annotation),
             size = 3.2, vjust = 0, parse = TRUE) +
   scale_x_discrete(labels = c("None\n(<20)", "Low\n(20-400)", "High\n(>400)")) +
-  coord_cartesian(ylim = c(0, max(spores_pa_C$TotalSpores_FBLBcorr.m3 * 0.5)))
+  coord_cartesian(ylim = c(0, max(FASMEE23_spores_pa_C$TotalSpores_FBLBcorr.m3 * 0.5)))
 
 print(p1)
 ```
@@ -450,6 +451,8 @@ Both GLMMs provide robust evidence for smoke effects on fungal spore concentrati
 
 ```{r FASMEE23 bacteria}
 bacteria <- read_csv('./Output/Output_data/FASMEE23/FASMEE23_Bacteria_PA_C.csv') %>%
+  select(Project, SampleID, TotalCells, LIVECounts, RepVolume_L, SmokeLevel, LB_Batch, Day,
+         MedianMR, MedianPM2.5_ug.m3, MedianTemp_C, TotalCells_FBLBcorr.m3, SampleType, Platform) %>%
   filter(SampleType != "FieldBlank" & SampleType != "LabBlank") %>%
   filter(Platform == "Blue" | (Platform == "Red" & SampleType == "Ambient")) %>%
   mutate(
@@ -625,10 +628,10 @@ FASMEE23 shows a strong response to smoke conditions for bacterial concentration
 - The similar response patterns to smoke suggest both microbial groups respond similarly to combustion conditions
 - The stronger response to low smoke may indicate optimal conditions for microbial release during moderate combustion
 
-# Modeling for research question #2: Environmental drivers of Konza4smoke spore abundance
+# Modeling for research question #2: Environmental drivers of Konza4 smoke spore abundance
 ## Konza4 smoke spore data summary (smoke samples only)
 ```{r Konza4 smoke spores}
-Konza4_smoke_spores <- spores_pa_C %>%
+Konza4_smoke_spores <- Konza4_spores_pa_C %>%
   filter(SampleType == "Smoke")
 
 summary(Konza4_smoke_spores)
@@ -636,7 +639,7 @@ summary(Konza4_smoke_spores)
 
 ## GLMM model for Konza4 smoke spore abundance vs. environmental drivers and DHARMa diagnostics for assessment
 ```{r Konza4 smoke spore GLMM}
-Konza4_Smoke_model <- glmmTMB(TotalSpores ~ MedianMR + MedianPM2.5_ug.m3 + MedianTemp_C + offset(log(Slide_RepVolume_L)) + 
+Konza4_Smoke_model <- glmmTMB(TotalSpores ~ MedianMR + MedianPM2.5_ug.m3 + MedianTemp_C + offset(log(RepVolume_L)) + 
                          (1|SampleID) + (1|LB_Batch),
                        family=nbinom2(link="log"), data = Konza4_smoke_spores, 
                        ziformula = ~1)
@@ -718,6 +721,32 @@ library(patchwork)
 (p_pm | p_mr) + plot_annotation(title = "Konza4 Smoke Spore Abundance vs. Environmental Variables")
 ```
 
+# Modeling for research question #2: Environmental drivers of FASMEE23 smoke spore abundance
+## FASMEE23 smoke spore data summary (smoke samples only)
+```{r FASMEE23 smoke spores}
+FASMEE23_smoke_spores <- FASMEE23_spores_pa_C %>%
+  filter(SampleType == "Smoke")
+
+summary(FASMEE23_smoke_spores)
+```
+
+## GLMM model for FASMEE23 smoke spore abundance vs. environmental drivers and DHARMa diagnostics for assessment
+```{r FASMEE23 smoke spore GLMM}
+FASMEE23_Smoke_model <- glmmTMB(TotalSpores ~ MedianMR + MedianPM2.5_ug.m3 + MedianTemp_C + offset(log(RepVolume_L)) + 
+                         (1|SampleID) + (1|LB_Batch),
+                       family=nbinom2(link="log"), data = FASMEE23_smoke_spores, 
+                       ziformula = ~1)
+summary(FASMEE23_Smoke_model)
+
+res <- simulateResiduals(fittedModel = FASMEE23_Smoke_model, plot = F)
+plotResiduals(res)
+plotQQunif(res)
+
+testZeroInflation(res)
+testDispersion(res) 
+```
+
+
 # Modeling for research question #2: Environmental drivers of FASMEE23 smoke bacteria abundance
 ## FASMEE23 smoke bacteria data summary (smoke samples only)
 ```{r FASMEE23 smoke bacteria}
@@ -743,5 +772,117 @@ testZeroInflation(res)
 testDispersion(res) 
 ```
 
-#
+# Modeling for research question #4: Site comparison of Konza4 and FASMEE23
+
+```{r Konza4 and FASMEE23 site comparison data}
+
+fasmee23_k4_spores <- bind_rows(Konza4_spores_pa_C, FASMEE23_spores_pa_C) %>%
+  mutate(
+    Project_SampleType = paste(Project, SampleType, sep = "_"),
+    Project_SampleType = factor(Project_SampleType, levels = c("Konza4_Ambient", "Konza4_Smoke", "FASMEE23_Ambient", "FASMEE23_Smoke"))
+    ) 
+
+summary(fasmee23_k4_spores)
+
+```
+
+```{r Konza4 and FASMEE23 site comparison GLMM}
+
+fasmee23_k4_spores_model <- glmmTMB(TotalSpores ~ Project_SampleType + offset(log(RepVolume_L)) + 
+                                    (1|SampleID) + (1|LB_Batch),
+                                  family=nbinom2(link="log"), data = fasmee23_k4_spores, 
+                                  ziformula = ~-1)
+summary(fasmee23_k4_spores_model)
+
+res <- simulateResiduals(fittedModel = fasmee23_k4_spores_model, plot = F)
+plotResiduals(res)
+plotQQunif(res)
+plotResiduals(res, fasmee23_k4_spores$Project_SampleType)
+testZeroInflation(res)
+testDispersion(res) 
+
+# Calculate marginal means and contrasts
+emm_log <- emmeans(fasmee23_k4_spores_model, ~ Project_SampleType)
+emm_response <- emmeans(fasmee23_k4_spores_model, ~ Project_SampleType, type = "response")
+
+custom_contrasts <- list(
+  "Konza4 Smoke vs Ambient" = c(-1, 1, 0, 0),
+  "FASMEE23 Smoke vs Ambient" = c(0, 0, -1, 1),
+  "Ambient: FASMEE23 vs Konza4" = c(-1, 0, 1, 0),
+  "Smoke: FASMEE23 vs Konza4" = c(0, -1, 0, 1)
+)
+rate_ratios <- contrast(emm_log, custom_contrasts, type = "response")
+
+site_comparison_cat <- as.data.frame(emm_response) %>%
+  mutate(
+    Spores.m3 = (response*7225)/0.03,
+    CI_lower = (asymp.LCL * 7225) / 0.03,
+    CI_upper = (asymp.UCL * 7225) / 0.03
+  )
+
+contrast_df <- as.data.frame(rate_ratios)
+sig_bars <- data.frame(
+  x = c(1, 3, 1, 2),
+  xend = c(2, 4, 3, 4),
+  pair = c("Konza4 Smoke vs Ambient", "FASMEE23 Smoke vs Ambient",
+           "Ambient: FASMEE23 vs Konza4", "Smoke: FASMEE23 vs Konza4"),
+  stringsAsFactors = FALSE
+)
+sig_bars$p_value <- sapply(sig_bars$pair, function(pair) {
+  idx <- which(contrast_df$contrast == pair)
+  if(length(idx) > 0) {
+    return(contrast_df$p.value[idx])
+  } else {
+    return(1.0)
+  }
+})
+max_height <- max(site_comparison_cat$CI_upper, na.rm = TRUE)
+sig_bars$y <- max_height * c(3.1, 3.3, 3.5, 3.7)
+sig_bars$annotation <- ifelse(
+  is.na(sig_bars$p_value),
+  'plain("")',
+  paste0("italic(P)==", signif(sig_bars$p_value, 2))
+)
+
+p1 <- ggplot(site_comparison_cat, aes(x = Project_SampleType, y = Spores.m3)) +
+  geom_point(data = fasmee23_k4_spores,
+             aes(x = Project_SampleType, y = TotalSpores_FBLBcorr.m3),
+             position = position_jitter(width = 0.1),
+             alpha = 0.5, size = 2, color = "#0072B2") +
+  geom_violin(data = fasmee23_k4_spores,
+              aes(x = Project_SampleType, y = TotalSpores_FBLBcorr.m3),
+              fill = NA, color = "black", width = 0.8, alpha = 0.5) +
+  geom_col(fill = "#0072B2", alpha = 0.6) +
+  geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper),
+                width = 0.2, color = "black", linewidth = 1.1) +
+  labs(x = "Site and Sample Type",
+       y = expression(Spores~m^{-3}),
+       title = "Fungal Spore Abundance: Site Comparison") +
+  theme_bw() +
+  theme(text = element_text(size = 10),
+        plot.title = element_text(hjust = 0.5, face = "bold"),
+        axis.text.x = element_text(angle = 45, hjust = 1)) +
+  geom_segment(data = sig_bars,
+               aes(x = x, xend = xend, y = y, yend = y),
+               linewidth = 0.5) +
+  geom_segment(data = sig_bars,
+               aes(x = x, xend = x, y = y, yend = y - max_height * 0.05),
+               linewidth = 0.5) +
+  geom_segment(data = sig_bars,
+               aes(x = xend, xend = xend, y = y, yend = y - max_height * 0.05),
+               linewidth = 0.5) +
+  geom_text(data = sig_bars,
+            aes(x = (x + xend) / 2, y = y + max_height * 0.02, label = annotation),
+            size = 3.2, vjust = 0, parse = TRUE) +
+  scale_x_discrete(labels = c("Konza4\nAmbient", "Konza4\nSmoke",
+                              "FASMEE23\nAmbient", "FASMEE23\nSmoke")) +
+  coord_cartesian(ylim = c(0, max(fasmee23_k4_spores$TotalSpores_FBLBcorr.m3 * 0.5)))
+
+print(p1)
+print(rate_ratios)
+```
+
+
+
+
 
