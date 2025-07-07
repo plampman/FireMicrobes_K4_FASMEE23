@@ -86,11 +86,10 @@ PA_stats_k4 <- PA_stats_k4 %>%
                        levels = c("Good", "Moderate/Unhealthy", "Very Unhealthy", "Hazardous")),
     SmokeLevel = case_when(
       MedianPM2.5_ug.m3 < 20 ~ "None",
-      MedianPM2.5_ug.m3 >= 20 & MedianPM2.5_ug.m3 < 350 ~ "Low",
-      MedianPM2.5_ug.m3 >= 350 & MedianPM2.5_ug.m3 < 700 ~ "Moderate",
-      MedianPM2.5_ug.m3 >= 700 ~ "High",
+      MedianPM2.5_ug.m3 >= 20 & MedianPM2.5_ug.m3 < 400 ~ "Low",
+      MedianPM2.5_ug.m3 >= 400 ~ "High",
       TRUE ~ NA_character_),
-    SmokeLevel = factor(SmokeLevel, levels = c("None", "Low", "Moderate", "High")))
+    SmokeLevel = factor(SmokeLevel, levels = c("None", "Low", "High")))
 
 
 # Different "smoke levels"
