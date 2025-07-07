@@ -59,7 +59,7 @@ blank_means <- spores %>%
   filter(SampleType == "LabBlank") %>%
   group_by(LB_Batch) %>%
   summarise(
-    TotalSpores_LB = median(TotalSpores),
+    TotalSpores_LB = mean(TotalSpores),
   ) %>%
   ungroup
 
@@ -67,7 +67,7 @@ blank_means <- spores %>%
 spores <- left_join(spores, blank_means, by = "LB_Batch")
 
 spores <- spores %>%
-  filter(SampleType != "LabBlank") %>%
+  #filter(SampleType != "LabBlank") %>%
   mutate(
     TotalSpores_LBcorr = pmax(0, TotalSpores - TotalSpores_LB),
     log_volume_offset_m3 = if_else(SampleType == "Smoke" | SampleType == "Ambient", log(RepVolume_m3), 0)) #%>% 
@@ -76,12 +76,12 @@ spores <- spores %>%
 FieldBlank_mean <- spores %>%
   filter(SampleType == "FieldBlank") %>%
   summarise(
-    TotalSpores_FB = median(TotalSpores)
+    TotalSpores_FB = mean(TotalSpores)
   ) %>%
   ungroup
 
 spores <- spores %>%
-  filter(SampleType != "FieldBlank") %>%
+  #filter(SampleType != "FieldBlank") %>%
   mutate(
     TotalSpores_FBLB = TotalSpores_LB + FieldBlank_mean$TotalSpores_FB,
     TotalSpores_FBLBcorr = pmax(0, TotalSpores_LBcorr - FieldBlank_mean$TotalSpores_FB))
@@ -93,7 +93,6 @@ Ambient_mean <- spores %>%
     Ambient_Offset = mean((TotalSpores*FOV1000x.filter)/RepVolume_m3))
 
 spores <- spores %>%
-  filter(SampleType != "FieldBlank") %>%
   mutate(Sample_num = if_else(Platform == "Blue", str_extract(SampleID, "\\d+"), NA_character_),
          Sample_num = as.numeric(Sample_num),
          TotalSpores.filter = TotalSpores*FOV1000x.filter,
