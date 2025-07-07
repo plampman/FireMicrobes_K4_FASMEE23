@@ -368,7 +368,7 @@ print(drop1(Konza4_SporeCatModel, test = "Chisq"))
 # Calculate marginal means and contrasts
 emm_log <- emmeans(Konza4_SporeCatModel, ~ SampleType)
 emm_response <- emmeans(Konza4_SporeCatModel, ~ SampleType, type = "response")
-rate_ratios_vs_none <- contrast(emm_log, method = "trt.vs.ctrl", ref = "None", type = "response")
+rate_ratios_vs_none <- pairs(emm_response, reverse = T)
 
 # Create prediction dataframe
 spore_cat <- as.data.frame(emm_response) %>% 
@@ -388,7 +388,7 @@ print(spore_cat)
 
 ## [5.3] Ratios from Konza4 spore GLMM model
 ```{r contrast-results, echo=FALSE}
-print(rate_ratios_vs_none)
+print(summary(rate_ratios_vs_none, infer = T))
 ```
 
 ## [5.4] Plotting Konza4 spore model results with raw data as points/violin plots
@@ -397,9 +397,9 @@ print(rate_ratios_vs_none)
 # Create significance bars
 contrast_df <- as.data.frame(rate_ratios_vs_none)
 sig_bars <- data.frame(
-  x = c(1, 1),
-  xend = c(2, 3),
-  pair = c("Low / None", "High / None"),
+  x = c(1),
+  xend = c(2),
+  pair = c("Smoke / Ambient"),
   stringsAsFactors = FALSE
 )
 
@@ -413,29 +413,27 @@ sig_bars$p_value <- sapply(sig_bars$pair, function(pair) {
 })
 
 max_height <- max(spore_cat$CI_upper, na.rm = TRUE)
-sig_bars$y <- max_height * c(2.7, 2.9)
+sig_bars$y <- max_height * c(2.7)
 sig_bars$annotation <- ifelse(
   is.na(sig_bars$p_value),
   'plain("")',
-  paste0("italic(P)[dunnettx-adj]==", signif(sig_bars$p_value, 2))
+  paste0("italic(p) ==", signif(sig_bars$p_value, 2))
 )
 
-p1 <- ggplot(spore_cat, aes(x = SmokeLevel, y = Spores.m3)) +
+p1 <- ggplot(spore_cat, aes(x = SampleType, y = Spores.m3)) +
     geom_point(data = Konza4_spores_pa_C, 
-             aes(x = SmokeLevel, y = TotalSpores_corrected.m3), 
+             aes(x = SampleType, y = TotalSpores_corrected.m3), 
              position = position_jitter(width = 0.1), 
              alpha = 0.5, size = 2, color = "#0072B2") +
   geom_violin(data = Konza4_spores_pa_C, 
-              aes(x = SmokeLevel, y = TotalSpores_corrected.m3), 
+              aes(x = SampleType, y = TotalSpores_corrected.m3), 
               fill = NA, color = "black", width = 0.8, alpha = 0.5) +
   geom_col(fill = "#0072B2", alpha = 0.6) +
   geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper), 
                 width = 0.2, color = "black", linewidth = 1.1) +
   labs(x = expression(PM[2.5]~"range"), 
        y = expression(Spores~m^{-3}),
-       title = expression(
-         paste("Smoke vs. Ambient Tallgrass Prairie Fungal Spores by ", 
-         PM[2.5], " Range"))) +
+       title = "Smoke vs. Ambient Tallgrass Prairie Fungal Spores") +
   theme_bw() +
   theme(text = element_text(size = 10),
         plot.title = element_text(hjust = 0.5, face = "bold"),
@@ -452,7 +450,7 @@ p1 <- ggplot(spore_cat, aes(x = SmokeLevel, y = Spores.m3)) +
   geom_text(data = sig_bars,
             aes(x = (x + xend) / 2, y = y + max_height * 0.02, label = annotation),
             size = 3.2, vjust = 0, parse = TRUE) +
-  scale_x_discrete(labels = c("None\n(<20)", "Low\n(20-400)", "High\n(>400)")) +
+  scale_x_discrete(labels = c("Ambient", "Smoke")) +
   coord_cartesian(ylim = c(0, max(Konza4_spores_pa_C$TotalSpores_corrected.m3 * 0.5)))
 
 print(p1)
