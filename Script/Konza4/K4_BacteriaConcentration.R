@@ -60,7 +60,7 @@ blank_means <- bacteria %>%
 bacteria <- left_join(bacteria, blank_means, by = "LB_Batch")
 
 bacteria <- bacteria %>%
-  filter(SampleType != "LabBlank") %>%
+  #filter(SampleType != "LabBlank") %>%
   mutate(
     DeadCells_LBcorr = pmax(0, DEADCounts - DeadCells_LB),
     LiveCells_LBcorr = pmax(0, LIVECounts - LiveCells_LB),
@@ -68,6 +68,7 @@ bacteria <- bacteria %>%
 
 FieldBlank_mean <- bacteria %>%
   filter(SampleType == "FieldBlank") %>%
+  group_by(SampleID) %>%
   summarise(
     TotalCells_FB = mean(TotalCells_LBcorr),
     LiveCells_FB = mean(LiveCells_LBcorr),
@@ -76,7 +77,7 @@ FieldBlank_mean <- bacteria %>%
   ungroup
 
 bacteria <- bacteria %>%
-  filter(SampleType != "FieldBlank") %>%
+  #filter(SampleType != "FieldBlank") %>%
   mutate(
     TotalCells_FBLB = TotalCells_LB + FieldBlank_mean$TotalCells_FB,
     LiveCells_FBLB = LiveCells_LB + FieldBlank_mean$LiveCells_FB,
@@ -131,26 +132,38 @@ bacteria_pa_C <- left_join(bacteria_pa, slim_UI_EPA_C, by = c('Sample_num' = 'Sa
     Live_bacteria.mg = LiveCells_Bcorr.m3/biomass_mg
   )
 
-write.csv(bacteria_pa_C, './Output/Output_data/K4/k4_Bacteria_PA_C.csv', row.names = F)
+#write.csv(bacteria_pa_C, './Output/Output_data/K4/k4_Bacteria_PA_C.csv', row.names = F)
 
 na_count <- bacteria_pa_C %>%
   summarize(across(everything(), ~sum(is.na(.))))
 
 sample_bacteria <- bacteria_pa_C  %>%
-  group_by(SampleID, Unit, AQI_PM2.5, RepVolume_m3) %>%
+  group_by(SampleID, RepVolume_m3) %>%
   summarise(
-    
-    meanMCE = mean(MeanMCE, na.rm = T),
-    meanMR = mean(MedianMR),
-    
     TotalBacteria.Mg = mean(Total_bacteria.Mg, na.rm = T),
     LiveBacteria.Mg = mean(Live_bacteria.Mg, na.rm = T),
+    
     Total_BcorrBacteria.m3 = mean(TotalCells_Bcorr.m3),
     Live_BcorrBacteria.m3 = mean(LiveCells_Bcorr.m3),
-    sd_total_BcorrBacteria.m3 = sd(TotalCells_Bcorr.m3),
-    sd_live_BcorrBacteria.m3 = sd(LiveCells_Bcorr.m3),
+    
     Total_Bacteria.m3 = mean(TotalCells_FBLBcorr.m3),
     Live_bacteria.m3 = mean(LiveCells_FBLBcorr.m3),
+    
+    Live.Total_Bcorr = mean(Live.Total_Bcorr, na.rm = T),
+    Live.Total_FBLBcorr = mean(Live.Total_FBLBcorr, na.rm = T),
+    Live.Total = mean(Live.Total, na.rm = T),
+    
+    RH = mean(MeanRH, na.rm = T),
+    PM2.5 = mean(MedianPM2.5_ug.m3, na.rm = T),
+    Temp = mean(MeanTemp_C, na.rm = T),
+    FOVs = n(),
+    NAFOVs = sum(is.na(FOV)),
+    meanMCE = mean(MeanMCE, na.rm = T),
+    
+
+    sd_total_BcorrBacteria.m3 = sd(TotalCells_Bcorr.m3),
+    sd_live_BcorrBacteria.m3 = sd(LiveCells_Bcorr.m3),
+
     sd_total_bacteria.m3 = sd(TotalCells_FBLBcorr.m3),
     sd_live_bacteria.m3 = sd(LiveCells_FBLBcorr.m3))
 
