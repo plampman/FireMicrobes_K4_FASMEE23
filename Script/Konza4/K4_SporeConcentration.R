@@ -57,7 +57,7 @@ blank_means <- spores %>%
 spores <- left_join(spores, blank_means, by = "LB_Batch")
 
 spores <- spores %>%
-  filter(SampleType != "LabBlank") %>%
+  #filter(SampleType != "LabBlank") %>%
   mutate(
     TotalSpores_LBcorr = pmax(0, TotalSpores - TotalSpores_LB),
     log_volume_offset_m3 = if_else(SampleType == "Smoke" | SampleType == "Ambient", log(RepVolume_m3), 0)) 
@@ -70,7 +70,7 @@ FieldBlank_mean <- spores %>%
   ungroup
 
 spores <- spores %>%
-  filter(SampleType != "FieldBlank") %>%
+  #filter(SampleType != "FieldBlank") %>%
   mutate(
     TotalSpores_FBLB = TotalSpores_LB + FieldBlank_mean$TotalSpores_FB,
     TotalSpores_FBLBcorr = pmax(0, TotalSpores_LBcorr - FieldBlank_mean$TotalSpores_FB))
@@ -82,9 +82,9 @@ Ambient_mean <- spores %>%
   )
 
 spores <- spores %>%
-  filter(SampleType != "FieldBlank") %>%
   mutate(Sample_num = as.numeric(str_extract(SampleID, "\\d+")),
          TotalSpores.filter = TotalSpores*FOV1000x.filter,
+         TotalSpores.m3 = TotalSpores.filter/RepVolume_m3,
          TotalSpores.filter_FBLBcorr = TotalSpores_FBLBcorr*FOV1000x.filter,
          TotalSpores_FBLBcorr.m3 = TotalSpores.filter_FBLBcorr/RepVolume_m3,
          TotalSpores_Bcorr = if_else(SampleType == "Smoke", pmax(0, TotalSpores_FBLBcorr - Ambient_mean$AmbientSpores.FOV), NA),
@@ -110,13 +110,14 @@ sample_spores <- spores_pa_C  %>%
   group_by(SampleID, Unit, AQI_PM2.5, RepVolume_m3) %>%
   summarise(
     mean_Spores.Mg = mean(spores.Mg, na.rm = T),
-    meanMCE = mean(MeanMCE, na.rm = T),
-    meanMR = mean(MedianMR),
-    mean_spores.FOV = mean(TotalSpores),
-    sd_spores.FOV = sd(TotalSpores),
     mean_spores.m3 = mean(TotalSpores_FBLBcorr.m3),
     mean_BcorrSpores.m3 = mean(TotalSpores_Bcorr.m3, na.rm = T),
-    sd_spores.m3 = sd(TotalSpores_FBLBcorr.m3))
+    medianPM2.5 = mean(MedianPM2.5_ug.m3),
+    meanMCE = mean(MeanMCE, na.rm = T),
+    meanTemp = mean(MeanTemp_C),
+    meanRH = mean(MeanRH),
+    mean_spores.FOV = mean(TotalSpores),
+    sd_spores.FOV = sd(TotalSpores))
 
 FEF_K4 <- spores_pa_C  %>%
   summarise(
