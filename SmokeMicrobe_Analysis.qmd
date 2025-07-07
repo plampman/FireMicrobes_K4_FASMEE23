@@ -42,6 +42,7 @@ library(emmeans)
 library(glmmTMB)
 library(DHARMa)
 library(patchwork)
+library(ggpattern)
 ```
 
 # [1] Study Overview
@@ -110,10 +111,12 @@ Microbes were enumerated using epifluorescence microscopy after fluorescent stai
 # [4] Konza4 spore data summary
 
 ```{r data-load, echo=FALSE}
-Konza4_spores_pa_C <- read_csv('./Output/Output_data/K4/k4_Spores_PA_C.csv') %>%
+Konza4_spores_pa_C_copy <- read_csv('./Output/Output_data/K4/k4_Spores_PA_C.csv') 
+
+Konza4_spores_pa_C <- Konza4_spores_pa_C_copy %>%
   select(Project, SampleID, TotalSpores, RepVolume_L = Slide_RepVolume_L, SmokeLevel, LB_Batch, Day,
          MeanMR, MedianPM2.5_ug.m3, MeanTemp_C, MeanRH, TotalSpores_corrected.m3 = TotalSpores_FBLBcorr.m3, 
-         SampleType, ALL_carbon_mg.m3, MedianMCE) %>%
+         SampleType, ALL_carbon_mg.m3, MeanMCE) %>%
   filter(SampleType != "FieldBlank" & SampleType != "LabBlank") %>%
   mutate(
     Project = as.factor(Project),
@@ -136,19 +139,19 @@ cat("\n")
 
 # Summary statistics for key variables
 cat("Summary statistics for key variables:\n")
-key_vars <- c("TotalSpores", "TotalSpores_corrected.m3", "RepVolume_L", "MedianPM2.5_ug.m3", "MeanTemp_C", "MeanRH", "MeanMR", "ALL_carbon_mg.m3", "MedianMCE")
+key_vars <- c("TotalSpores", "TotalSpores_corrected.m3", "RepVolume_L", "MedianPM2.5_ug.m3", "MeanTemp_C", "MeanRH", "MeanMR", "ALL_carbon_mg.m3", "MeanMCE")
 
 # Create summary statistics 
 summary_stats <- data.frame(
   Variable = key_vars,
   n = sapply(Konza4_spores_pa_C[key_vars], function(x) sum(!is.na(x))),
-  Mean = sapply(Konza4_spores_pa_C[key_vars], function(x) round(mean(x, na.rm = TRUE), 1)),
-  SD = sapply(Konza4_spores_pa_C[key_vars], function(x) round(sd(x, na.rm = TRUE), 1)),
-  Min = sapply(Konza4_spores_pa_C[key_vars], function(x) round(min(x, na.rm = TRUE), 1)),
-  Q25 = sapply(Konza4_spores_pa_C[key_vars], function(x) round(quantile(x, 0.25, na.rm = TRUE), 1)),
-  Median = sapply(Konza4_spores_pa_C[key_vars], function(x) round(median(x, na.rm = TRUE), 1)),
-  Q75 = sapply(Konza4_spores_pa_C[key_vars], function(x) round(quantile(x, 0.75, na.rm = TRUE), 1)),
-  Max = sapply(Konza4_spores_pa_C[key_vars], function(x) round(max(x, na.rm = TRUE), 1))
+  Mean = sapply(Konza4_spores_pa_C[key_vars], function(x) round(mean(x, na.rm = TRUE), 2)),
+  SD = sapply(Konza4_spores_pa_C[key_vars], function(x) round(sd(x, na.rm = TRUE), 2)),
+  Min = sapply(Konza4_spores_pa_C[key_vars], function(x) round(min(x, na.rm = TRUE), 2)),
+  Q25 = sapply(Konza4_spores_pa_C[key_vars], function(x) round(quantile(x, 0.25, na.rm = TRUE), 2)),
+  Median = sapply(Konza4_spores_pa_C[key_vars], function(x) round(median(x, na.rm = TRUE), 2)),
+  Q75 = sapply(Konza4_spores_pa_C[key_vars], function(x) round(quantile(x, 0.75, na.rm = TRUE), 2)),
+  Max = sapply(Konza4_spores_pa_C[key_vars], function(x) round(max(x, na.rm = TRUE), 2))
 )
 
 print(summary_stats, row.names = FALSE)
@@ -185,7 +188,7 @@ p4 <- create_hist_density(Konza4_spores_pa_C, "MeanTemp_C", "Temperature Distrib
 p5 <- create_hist_density(Konza4_spores_pa_C, "MeanRH", "Relative Humidity Distribution", "Relative Humidity (%)")
 p6 <- create_hist_density(Konza4_spores_pa_C, "MeanMR", "Moisture Ratio Distribution", "Moisture Ratio")
 p7 <- create_hist_density(Konza4_spores_pa_C, "ALL_carbon_mg.m3", "Carbon Distribution", "Carbon (mg/m³)")
-p8 <- create_hist_density(Konza4_spores_pa_C, "MedianMCE", "MCE Distribution", "Modified Combustion Efficiency")
+p8 <- create_hist_density(Konza4_spores_pa_C, "MeanMCE", "MCE Distribution", "Modified Combustion Efficiency")
 
 # Display all plots in a grid
 (p1 + p2) / (p3 + p4) / (p5 + p6) / (p7 + p8) + 
@@ -199,7 +202,7 @@ cat("\n=== Additional Data Visualizations ===\n")
 
 # 1. Boxplots by smoke level for key variables
 cat("\n1. Boxplots by Smoke Level:\n")
-boxplot_vars <- c("TotalSpores", "TotalSpores_corrected.m3", "MedianPM2.5_ug.m3", "MeanTemp_C", "MeanRH", "MeanMR", "ALL_carbon_mg.m3", "MedianMCE")
+boxplot_vars <- c("TotalSpores", "TotalSpores_corrected.m3", "MedianPM2.5_ug.m3", "MeanTemp_C", "MeanRH", "MeanMR", "ALL_carbon_mg.m3", "MeanMCE")
 
 create_boxplot <- function(data, var_name, title) {
   ggplot(data, aes(x = SmokeLevel, y = .data[[var_name]], fill = SmokeLevel)) +
@@ -228,7 +231,7 @@ library(corrplot)
 
 # Select numeric variables for correlation
 cor_vars <- c("TotalSpores", "TotalSpores_corrected.m3", "MedianPM2.5_ug.m3", 
-              "MeanTemp_C", "MeanRH", "MeanMR", "ALL_carbon_mg.m3", "MedianMCE")
+              "MeanTemp_C", "MeanRH", "MeanMR", "ALL_carbon_mg.m3", "MeanMCE")
 cor_data <- Konza4_spores_pa_C[cor_vars]
 cor_matrix <- cor(cor_data, use = "pairwise.complete.obs")
 
@@ -272,7 +275,7 @@ sp3 <- ggplot(Konza4_spores_pa_C, aes(x = MeanRH, y = TotalSpores_corrected.m3, 
   theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 10))
 
 # Spore concentration vs MCE
-sp4 <- ggplot(Konza4_spores_pa_C, aes(x = MedianMCE, y = TotalSpores_corrected.m3, color = SmokeLevel)) +
+sp4 <- ggplot(Konza4_spores_pa_C, aes(x = MeanMCE, y = TotalSpores_corrected.m3, color = SmokeLevel)) +
   geom_point(alpha = 0.7, size = 2) +
   geom_smooth(method = "lm", se = TRUE, alpha = 0.3) +
   labs(title = "Spore concentration vs MCE", 
@@ -281,7 +284,7 @@ sp4 <- ggplot(Konza4_spores_pa_C, aes(x = MedianMCE, y = TotalSpores_corrected.m
   theme_bw() +
   theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 10))
 
-(sp1 + sp2) / (sp3 + sp4) +
+(sp1) / (sp2) / (sp3) / (sp4) +
   plot_annotation(title = "Key Variable Relationships")
 
 
@@ -312,19 +315,59 @@ Konza4_SporeCatModel <- glmmTMB(
     (1|SampleID) + (1|LB_Batch),
   family = nbinom2(link = "log"), 
   data = Konza4_spores_pa_C, 
-  ziformula = ~1)
+  ziformula = ~-1)
 summary(Konza4_SporeCatModel)
 
 res <- simulateResiduals(fittedModel = Konza4_SporeCatModel, plot = FALSE)
-plotResiduals(res)
 plotQQunif(res)
-plotResiduals(res, Konza4_spores_pa_C$SmokeLevel)  # Residuals by group
+testCategorical(res, catPred = Konza4_spores_pa_C$SmokeLevel) # Residuals by group
+plotResiduals(res)
 testZeroInflation(res)
-testDispersion(res) 
+simOutput_cond <- simulateResiduals(Konza4_SporeCatModel, re.form = NULL)
+testDispersion(simOutput_cond) 
+
+print(drop1(Konza4_SporeCatModel, test = "Chisq"))
 
 # Calculate marginal means and contrasts
-emm_log <- emmeans(Konza4_SporeCatModel, ~ SmokeLevel)
-emm_response <- emmeans(Konza4_SporeCatModel, ~ SmokeLevel, type = "response")
+# emm_log <- emmeans(Konza4_SporeCatModel, ~ SmokeLevel)
+# emm_response <- emmeans(Konza4_SporeCatModel, ~ SmokeLevel, type = "response")
+# rate_ratios_vs_none <- contrast(emm_log, method = "trt.vs.ctrl", ref = "None", type = "response")
+# 
+# # Create prediction dataframe
+# spore_cat <- as.data.frame(emm_response) %>% 
+#   mutate(
+#     Spores.m3 = (response*7225)/0.03,
+#     CI_lower = (asymp.LCL * 7225) / 0.03,
+#     CI_upper = (asymp.UCL * 7225) / 0.03
+#   )
+
+```
+#### Smoke level is not a significant predictor (p = 0.09899), so lets see if smoke vs. ambient is 
+
+```{r}
+
+Konza4_SporeCatModel <- glmmTMB(
+  TotalSpores ~ SampleType + offset(log(RepVolume_L)) + 
+    (1|SampleID) + (1|LB_Batch),
+  family = nbinom2(link = "log"), 
+  data = Konza4_spores_pa_C, 
+  ziformula = ~-1)
+summary(Konza4_SporeCatModel)
+
+
+res <- simulateResiduals(fittedModel = Konza4_SporeCatModel, plot = FALSE)
+plotQQunif(res)
+testCategorical(res, catPred = Konza4_spores_pa_C$SampleType) # Residuals by group
+plotResiduals(res)
+testZeroInflation(res)
+simOutput_cond <- simulateResiduals(Konza4_SporeCatModel, re.form = NULL)
+testDispersion(simOutput_cond) 
+
+print(drop1(Konza4_SporeCatModel, test = "Chisq"))
+
+# Calculate marginal means and contrasts
+emm_log <- emmeans(Konza4_SporeCatModel, ~ SampleType)
+emm_response <- emmeans(Konza4_SporeCatModel, ~ SampleType, type = "response")
 rate_ratios_vs_none <- contrast(emm_log, method = "trt.vs.ctrl", ref = "None", type = "response")
 
 # Create prediction dataframe
@@ -334,6 +377,7 @@ spore_cat <- as.data.frame(emm_response) %>%
     CI_lower = (asymp.LCL * 7225) / 0.03,
     CI_upper = (asymp.UCL * 7225) / 0.03
   )
+
 
 ```
 
@@ -369,7 +413,7 @@ sig_bars$p_value <- sapply(sig_bars$pair, function(pair) {
 })
 
 max_height <- max(spore_cat$CI_upper, na.rm = TRUE)
-sig_bars$y <- max_height * c(3.1, 3.3)
+sig_bars$y <- max_height * c(2.7, 2.9)
 sig_bars$annotation <- ifelse(
   is.na(sig_bars$p_value),
   'plain("")',
@@ -441,10 +485,12 @@ Konza4 shows a strong and consistent increase in spore concentrations under both
 
 # [6] FASMEE23 spore data summary
 ```{r FASMEE23 spores, echo=FALSE}
-FASMEE23_spores_pa_C <- read.csv('./Output/Output_data/FASMEE23/FASMEE23_Spores_PA_C.csv') %>%
+FASMEE23_spores_pa_C_copy <- read.csv('./Output/Output_data/FASMEE23/FASMEE23_Spores_PA_C.csv') 
+
+FASMEE23_spores_pa_C <- FASMEE23_spores_pa_C_copy %>%
   select(Project, SampleID, TotalSpores, RepVolume_L, SmokeLevel, LB_Batch, Day,
          MeanMR, MedianPM2.5_ug.m3, MeanTemp_C, MeanRH, TotalSpores_corrected.m3 = TotalSpores_FBLBcorr.m3, 
-         SampleType, Platform, ALL_carbon_mg.m3 = Gas_TC_Carbon_mg.m3, MedianMCE) %>%
+         SampleType, Platform, ALL_carbon_mg.m3 = Gas_TC_Carbon_mg.m3, MeanMCE) %>%
   filter(SampleType != "FieldBlank" & SampleType != "LabBlank") %>%
   filter(Platform == "Blue" | (Platform == "Red" & SampleType == "Ambient")) %>%
   mutate(
@@ -467,7 +513,7 @@ cat("\n")
 
 # Summary statistics for key variables
 cat("Summary statistics for key variables:\n")
-key_vars <- c("TotalSpores", "TotalSpores_corrected.m3", "RepVolume_L", "MedianPM2.5_ug.m3", "MeanTemp_C", "MeanRH", "MeanMR", "ALL_carbon_mg.m3", "MedianMCE")
+key_vars <- c("TotalSpores", "TotalSpores_corrected.m3", "RepVolume_L", "MedianPM2.5_ug.m3", "MeanTemp_C", "MeanRH", "MeanMR", "ALL_carbon_mg.m3", "MeanMCE")
 
 # Create summary statistics 
 summary_stats <- data.frame(
@@ -505,7 +551,7 @@ p4 <- create_hist_density(FASMEE23_spores_pa_C, "MeanTemp_C", "Temperature Distr
 p5 <- create_hist_density(FASMEE23_spores_pa_C, "MeanRH", "Relative Humidity Distribution", "Relative Humidity (%)")
 p6 <- create_hist_density(FASMEE23_spores_pa_C, "MeanMR", "Moisture Ratio Distribution", "Moisture Ratio")
 p7 <- create_hist_density(FASMEE23_spores_pa_C, "ALL_carbon_mg.m3", "Carbon Distribution", "Carbon (mg/m³)")
-p8 <- create_hist_density(FASMEE23_spores_pa_C, "MedianMCE", "MCE Distribution", "Modified Combustion Efficiency")
+p8 <- create_hist_density(FASMEE23_spores_pa_C, "MeanMCE", "MCE Distribution", "Modified Combustion Efficiency")
 
 # Display all plots in a grid
 (p1 + p2) / (p3 + p4) / (p5 + p6) / (p7 + p8) + 
@@ -533,7 +579,7 @@ cat("\n2. Correlation Matrix:\n")
 
 # Select numeric variables for correlation
 cor_vars <- c("TotalSpores", "TotalSpores_corrected.m3", "MedianPM2.5_ug.m3", 
-              "MeanTemp_C", "MeanRH", "MeanMR", "ALL_carbon_mg.m3", "MedianMCE")
+              "MeanTemp_C", "MeanRH", "MeanMR", "ALL_carbon_mg.m3", "MeanMCE")
 cor_data <- FASMEE23_spores_pa_C[cor_vars]
 cor_matrix <- cor(cor_data, use = "pairwise.complete.obs")
 
@@ -577,7 +623,7 @@ sp3 <- ggplot(FASMEE23_spores_pa_C, aes(x = MeanRH, y = TotalSpores_corrected.m3
   theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 10))
 
 # Spore concentration vs MCE
-sp4 <- ggplot(FASMEE23_spores_pa_C, aes(x = MedianMCE, y = TotalSpores_corrected.m3, color = SmokeLevel)) +
+sp4 <- ggplot(FASMEE23_spores_pa_C, aes(x = MeanMCE, y = TotalSpores_corrected.m3, color = SmokeLevel)) +
   geom_point(alpha = 0.7, size = 2) +
   geom_smooth(method = "lm", se = TRUE, alpha = 0.3) +
   labs(title = "Spore concentration vs MCE", 
@@ -586,7 +632,7 @@ sp4 <- ggplot(FASMEE23_spores_pa_C, aes(x = MedianMCE, y = TotalSpores_corrected
   theme_bw() +
   theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 10))
 
-(sp1 + sp2) / (sp3 + sp4) +
+(sp1) / (sp2) / (sp3) / (sp4) +
   plot_annotation(title = "Key Variable Relationships")
 
 # 5. Summary statistics by smoke level
@@ -619,9 +665,9 @@ summary(FASMEE23_SporeCatModel)
 
 # DHARMa diagnostics
 res <- simulateResiduals(fittedModel = FASMEE23_SporeCatModel, plot = FALSE)
-plotResiduals(res)
 plotQQunif(res)
 plotResiduals(res, FASMEE23_spores_pa_C$SmokeLevel)  # Residuals by group
+plotResiduals(res)
 testZeroInflation(res)
 testDispersion(res) 
 
@@ -744,11 +790,13 @@ FASMEE23 exhibits a much higher baseline spore concentration (~81,000 spores/m³
 
 # [8] Modeling for Research Question #1: FASMEE23 bacteria abundance in ambient vs. smoke conditions
 
-```{r FASMEE23 bacteria, echo=FALSE}
-bacteria <- read_csv('./Output/Output_data/FASMEE23/FASMEE23_Bacteria_PA_C.csv') %>%
+```{r FASMEE23 bacteria, echo=FALSE, fig.width=8, fig.height=10}
+FASMEE23_bacteria <- read_csv('./Output/Output_data/FASMEE23/FASMEE23_Bacteria_PA_C.csv') 
+
+bacteria <- FASMEE23_bacteria %>%
   select(Project, SampleID, TotalCells, LIVECounts, RepVolume_L, SmokeLevel, LB_Batch, Day,
          MeanMR, MedianPM2.5_ug.m3, MeanTemp_C, MeanRH, TotalCells_corrected.m3 = TotalCells_FBLBcorr.m3, 
-         SampleType, Platform, ALL_carbon_mg.m3 = Gas_TC_Carbon_mg.m3, MedianMCE) %>%
+         SampleType, Platform, ALL_carbon_mg.m3 = Gas_TC_Carbon_mg.m3, MeanMCE) %>%
   filter(SampleType != "FieldBlank" & SampleType != "LabBlank") %>%
   filter(Platform == "Blue" | (Platform == "Red" & SampleType == "Ambient")) %>%
   mutate(
@@ -773,7 +821,7 @@ cat("\n")
 # Summary statistics for key variables
 cat("Summary statistics for key variables:\n")
 key_vars <- c("TotalCells", "LIVECounts", "TotalCells_corrected.m3", "LiveRatio", "RepVolume_L", 
-              "MedianPM2.5_ug.m3", "MeanTemp_C", "MeanRH", "MeanMR", "ALL_carbon_mg.m3", "MedianMCE")
+              "MedianPM2.5_ug.m3", "MeanTemp_C", "MeanRH", "MeanMR", "ALL_carbon_mg.m3", "MeanMCE")
 
 # Create summary statistics 
 summary_stats <- data.frame(
@@ -813,7 +861,7 @@ p6 <- create_hist_density(bacteria, "MeanTemp_C", "Temperature Distribution", "T
 p7 <- create_hist_density(bacteria, "MeanRH", "Relative Humidity Distribution", "Relative Humidity (%)")
 p8 <- create_hist_density(bacteria, "MeanMR", "Moisture Ratio Distribution", "Moisture Ratio")
 p9 <- create_hist_density(bacteria, "ALL_carbon_mg.m3", "Carbon Distribution", "Carbon (mg/m³)")
-p10 <- create_hist_density(bacteria, "MedianMCE", "MCE Distribution", "Modified Combustion Efficiency")
+p10 <- create_hist_density(bacteria, "MeanMCE", "MCE Distribution", "Modified Combustion Efficiency")
 
 # Display all plots in a grid
 (p1 + p2) / (p3 + p4) / (p5 + p6) / (p7 + p8) / (p9 + p10) + 
@@ -821,7 +869,9 @@ p10 <- create_hist_density(bacteria, "MedianMCE", "MCE Distribution", "Modified 
     title = "FASMEE23 Bacteria Data Distributions",
     theme = theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 12))
   )
+```
 
+```{r FASMEE23 bacteria exploratory visualizations, echo=FALSE}
 # Additional exploratory visualizations
 cat("\n=== Additional Data Visualizations ===\n")
 
@@ -841,7 +891,7 @@ cat("\n2. Correlation Matrix:\n")
 
 # Select numeric variables for correlation
 cor_vars <- c("TotalCells", "LIVECounts", "TotalCells_corrected.m3", "LiveRatio", "MedianPM2.5_ug.m3", 
-              "MeanTemp_C", "MeanRH", "MeanMR", "ALL_carbon_mg.m3", "MedianMCE")
+              "MeanTemp_C", "MeanRH", "MeanMR", "ALL_carbon_mg.m3", "MeanMCE")
 cor_data <- bacteria[cor_vars]
 cor_matrix <- cor(cor_data, use = "pairwise.complete.obs")
 
@@ -927,9 +977,9 @@ summary(FASMEE23_BacteriaCatModel)
 
 # DHARMa diagnostics
 res <- simulateResiduals(fittedModel = FASMEE23_BacteriaCatModel, plot = FALSE)
-plotResiduals(res)
 plotQQunif(res)
 plotResiduals(res, bacteria$SmokeLevel)  # Residuals by group
+plotResiduals(res)
 testZeroInflation(res)
 testDispersion(res) 
 
@@ -1071,9 +1121,9 @@ FASMEE23_LiveRatioModel <- glmmTMB(cbind(LIVECounts, TotalCells - LIVECounts) ~
 summary(FASMEE23_LiveRatioModel)
 
 res <- simulateResiduals(fittedModel = FASMEE23_LiveRatioModel, plot = FALSE)
-plotResiduals(res)
 plotQQunif(res)
 plotResiduals(res, bacteria$SmokeLevel)  # Residuals by group
+plotResiduals(res)
 testZeroInflation(res)
 testDispersion(res) 
 
@@ -1114,7 +1164,7 @@ Konza4_smoke_spores <- Konza4_spores_pa_C %>%
 
 ## [10.1] GLMM model for Konza4 smoke spore abundance vs. environmental drivers and DHARMa diagnostics for assessment
 ```{r Konza4 smoke spore GLMM}
-Konza4_Smoke_model <- glmmTMB(TotalSpores ~ MeanMR + MedianPM2.5_ug.m3 + MeanTemp_C + MeanRH + offset(log(RepVolume_L)) + 
+Konza4_Smoke_model <- glmmTMB(TotalSpores ~ MedianPM2.5_ug.m3 + MeanTemp_C + MeanMR + offset(log(RepVolume_L)) + 
                          (1|SampleID) + (1|LB_Batch),
                        family=nbinom2(link="log"), data = Konza4_smoke_spores, 
                        ziformula = ~1)
@@ -1128,7 +1178,7 @@ testZeroInflation(res)
 testDispersion(res) 
 ```
 ## [10.2] Plotting Konza4 smoke spore model vs. environmental drivers with raw data as points
-```{r Konza4 smoke spore model plotting, fig.cap="Konza4 Smoke Spore Abundance vs. PM2.5 and Moisture Ratio"}
+```{r Konza4 smoke spore model plotting, fig.width=8, fig.height=5, fig.cap="Konza4 Smoke Spore Abundance vs. PM2.5 and Moisture Ratio"}
 # PM2.5 predictions
 pm_pred <- emmeans(Konza4_Smoke_model, ~ MedianPM2.5_ug.m3, 
                   at = list(MedianPM2.5_ug.m3 = seq(min(Konza4_smoke_spores$MedianPM2.5_ug.m3), 
@@ -1236,7 +1286,7 @@ FASMEE23_smoke_bacteria <- bacteria %>%
 FASMEE23_Smoke_model <- glmmTMB(TotalCells ~ MeanMR + MedianPM2.5_ug.m3 + MeanTemp_C + offset(log(RepVolume_L)) + 
                           (1|SampleID) + (1|LB_Batch),
                         family=nbinom2(link="log"), data = FASMEE23_smoke_bacteria, 
-                        ziformula = ~1, dispformula = ~MedianPM2.5_ug.m3)
+                        ziformula = ~1)
 summary(FASMEE23_Smoke_model)
 
 res <- simulateResiduals(fittedModel = FASMEE23_Smoke_model, plot = F)
@@ -1259,7 +1309,7 @@ fasmee23_k4_spores <- bind_rows(Konza4_spores_pa_C, FASMEE23_spores_pa_C) %>%
 
 ```
 
-```{r Konza4 and FASMEE23 site comparison plots}
+```{r Konza4 and FASMEE23 site comparison plot, echo=FALSE}
 # Site Comparison: FASMEE23 vs Konza4
 cat("\n=== Site Comparison: FASMEE23 vs Konza4 ===\n")
 
@@ -1294,52 +1344,6 @@ p1 <- ggplot(df_spores, aes(x = Project_SampleType, y = TotalSpores_corrected.m3
         axis.text.x = element_text(angle = 30, hjust = 1))
 print(p1)
 
-# Violin plot: Spore concentration by site and sample type
-cat("\nViolin plot: Spore concentration by site and sample type\n")
-p2 <- ggplot(df_spores, aes(x = Project_SampleType, y = TotalSpores_corrected.m3, fill = Project)) +
-  geom_violin(alpha = 0.5, color = "black") +
-  geom_jitter(width = 0.2, alpha = 0.4, size = 1) +
-  labs(title = "Spore Concentration Distribution by Site and Sample Type", x = "Site & Sample Type", y = "Spores (cells/m³)") +
-  scale_fill_manual(values = c("Konza4" = "#56B4E9", "FASMEE23" = "#D55E00")) +
-  theme_bw() +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 11),
-        axis.text.x = element_text(angle = 30, hjust = 1))
-print(p2)
-
-# Correlation heatmaps by site
-cat("\nCorrelation heatmaps by site\n")
-cor_vars <- c("TotalSpores_corrected.m3", "MedianPM2.5_ug.m3", "MeanTemp_C", "MeanRH", "MeanMR", "ALL_carbon_mg.m3", "MedianMCE")
-for(site in unique(df_spores$Project)) {
-  cat(paste0("\nCorrelation matrix for ", site, ":\n"))
-  cor_data <- df_spores %>% filter(Project == site) %>% select(all_of(cor_vars))
-  cor_matrix <- cor(cor_data, use = "pairwise.complete.obs")
-  corrplot(cor_matrix, method = "color", type = "upper", 
-           order = "hclust", tl.col = "black", tl.srt = 45,
-           addCoef.col = "black", number.cex = 0.7,
-           title = paste0(site, " Correlation Matrix"), mar = c(0,0,2,0))
-}
-
-# Key variable relationships: Spore concentration vs PM2.5, colored by site
-cat("\nKey variable relationships: Spore concentration vs PM2.5, colored by site\n")
-p3 <- ggplot(df_spores, aes(x = MedianPM2.5_ug.m3, y = TotalSpores_corrected.m3, color = Project)) +
-  geom_point(alpha = 0.7, size = 2) +
-  geom_smooth(method = "lm", se = TRUE, alpha = 0.3) +
-  labs(title = "Spore Concentration vs PM2.5 by Site", x = "PM2.5 (μg/m³)", y = "Spores (cells/m³)") +
-  scale_color_manual(values = c("Konza4" = "#56B4E9", "FASMEE23" = "#D55E00")) +
-  theme_bw() +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 11))
-print(p3)
-
-# Key variable relationships: Spore concentration vs Carbon, colored by site
-cat("\nKey variable relationships: Spore concentration vs Carbon, colored by site\n")
-p4 <- ggplot(df_spores, aes(x = ALL_carbon_mg.m3, y = TotalSpores_corrected.m3, color = Project)) +
-  geom_point(alpha = 0.7, size = 2) +
-  geom_smooth(method = "lm", se = TRUE, alpha = 0.3) +
-  labs(title = "Spore Concentration vs Carbon by Site", x = "Carbon (mg/m³)", y = "Spores (cells/m³)") +
-  scale_color_manual(values = c("Konza4" = "#56B4E9", "FASMEE23" = "#D55E00")) +
-  theme_bw() +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 11))
-print(p4)
 ```
 
 # [14] Modeling for research question #4: Site comparison of Konza4 and FASMEE23
@@ -1509,6 +1513,124 @@ print(p1)
 ### Conclusions
 Both GLMMs provide robust evidence for smoke effects on fungal spore concentrations, with forest fires producing higher absolute concentrations and prairie fires showing more consistent dose-response. The modeling approach effectively captures bioaerosol dynamics across fire regimes, though temporal and spatial limitations should be considered.
 
+# [15] Emission Factors
 
+```{r Emission Factors}
+# Function to calculate emission factor statistics
+calculate_ef_stats <- function(data, ef_column) {
+  data %>%
+    summarise(
+      EF = mean(!!sym(ef_column), na.rm = TRUE),
+      SE = sd(!!sym(ef_column), na.rm = TRUE) / sqrt(n()),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      Lower_CI = EF - 1.96 * SE,
+      Upper_CI = EF + 1.96 * SE
+    )
+}
+
+# Calculate emission factors for all groups
+ef_results <- list(
+  # Konza4 Bacteria
+  konza4_bacteria = read_csv('./Output/Output_data/K4/k4_Bacteria_PA_C.csv') %>%
+    filter(SampleType == "Smoke") %>%
+    calculate_ef_stats("Total_bacteria.Mg"),
+  
+  # Konza4 Spores
+  konza4_spores = Konza4_spores_pa_C_copy %>%
+    filter(SampleType == "Smoke") %>%
+    calculate_ef_stats("spores.Mg"),
+  
+  # FASMEE23 Bacteria
+  fasmee23_bacteria = FASMEE23_bacteria %>%
+    filter(SampleType == "Smoke" & Platform == "Blue") %>%
+    calculate_ef_stats("Total_bacteria.Mg"),
+  
+  # FASMEE23 Spores
+  fasmee23_spores = FASMEE23_spores_pa_C_copy %>%
+    filter(SampleType == "Smoke" & Platform == "Blue") %>%
+    calculate_ef_stats("spores.Mg")
+)
+
+ef_df <- bind_rows(
+  ef_results$konza4_bacteria %>% mutate(Group = "Bacteria", Study = "Konza4"),
+  ef_results$konza4_spores %>% mutate(Group = "Spores", Study = "Konza4"),
+  ef_results$fasmee23_bacteria %>% mutate(Group = "Bacteria", Study = "FASMEE23"),
+  ef_results$fasmee23_spores %>% mutate(Group = "Spores", Study = "FASMEE23")
+) %>%
+  select(Group, Study, EF, SE, Lower_CI, Upper_CI)
+
+# Split data for plots
+konza4_df <- ef_df %>% filter(Study == "Konza4")
+fasmee_df <- ef_df %>% filter(Study == "FASMEE23")
+
+# Konza4 plot
+p_konza4 <- ggplot(konza4_df, aes(x = Group, y = EF, fill = Group)) +
+  geom_col_pattern(
+   width = 0.7, 
+   color = "black",
+   alpha = 0.30,
+   fill = "white",              
+   pattern = c("stripe", "crosshatch"),
+   pattern_angle = c(35, 0),
+   pattern_density = c(0.1, 0.15),
+   pattern_spacing = c(0.05, 0.05),
+   pattern_fill = "black",
+   pattern_alpha = 0.5
+  ) +
+  geom_errorbar(aes(ymin = Lower_CI, ymax = Upper_CI), width = 0.18, linewidth = 1.1) +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = "Kansas Tallgrass Prairie"
+  ) +
+  theme_bw(base_size = 12) +
+  theme(
+    legend.position = "none",
+    axis.text.x = element_text(angle = 20, hjust = 1, size = 12, face = "bold"),
+    axis.title.y = element_text(size = 12, face = "bold"),
+    plot.title = element_text(size = 12, face = "bold", hjust = 0.5)
+  )
+
+# FASMEE23 plot
+p_fasmee <- ggplot(fasmee_df, aes(x = Group, y = EF, fill = Group)) +
+  geom_col_pattern(
+   width = 0.7, 
+   color = "black",
+   alpha = 0.30,
+   fill = "white",              
+   pattern = c("stripe", "crosshatch"),
+   pattern_angle = c(35, 0),
+   pattern_density = c(0.1, 0.15),
+   pattern_spacing = c(0.05, 0.05),
+   pattern_fill = "black",
+   pattern_alpha = 0.5
+  ) +
+  geom_errorbar(aes(ymin = Lower_CI, ymax = Upper_CI), width = 0.18, linewidth = 1.1) +
+  labs(
+    x = NULL,
+    y = expression("Microbes "*Mg^-1),
+    title = "Utah Subalpine Forest"
+  ) +
+  theme_bw(base_size = 12) +
+  theme(
+    legend.position = "none",
+    axis.text.x = element_text(angle = 20, hjust = 1, size = 12, face = "bold"),
+    axis.title.y = element_text(size = 12, face = "bold"),
+    plot.title = element_text(size = 12, face = "bold", hjust = 0.5)
+  )
+
+# Combine with patchwork
+library(patchwork)
+
+combined_plot <- (p_fasmee | p_konza4) + 
+  plot_annotation(
+    title = "Microbial Emission Factors from Wildland Fires",
+    caption = "Error bars: 95% CI"
+  )
+
+#ggsave("Output/Output_figs/K4_FASMEE23_EF.png", combined_plot, width = 6.5, height = 4, dpi = 600)
+```
 
 
