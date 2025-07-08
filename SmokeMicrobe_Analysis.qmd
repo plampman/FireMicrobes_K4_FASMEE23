@@ -1152,26 +1152,22 @@ FASMEE23 shows a strong response to smoke conditions for bacterial concentration
 
 # [9] Modeling for research question #3: FASMEE23 live bacteria ratio in ambient vs. smoke conditions
 ```{r FASMEE23 Live bacteria ratio}
-FASMEE23_LiveRatioModel <- glmmTMB(cbind(LIVECounts, TotalCells - LIVECounts) ~ 
-                          SmokeLevel + Platform +
-                          (1|LB_Batch/SampleID),
+FASMEE23_LiveRatioModel <- glmmTMB(cbind(LIVECounts, TotalCells - LIVECounts) ~ SampleType +
+                          (1|Platform:SampleID) + (1|LB_Batch),
                           family = betabinomial(link = "logit"), 
-                          data = bacteria, dispformula = ~SmokeLevel)
+                          data = bacteria, dispformula = ~ SampleType + (1|Platform:SampleID))
 summary(FASMEE23_LiveRatioModel)
 
 res <- simulateResiduals(fittedModel = FASMEE23_LiveRatioModel, plot = FALSE)
 plotQQunif(res)
-plotResiduals(res, bacteria$SmokeLevel)  # Residuals by group
+testCategorical(res, catPred = bacteria$SampleType) # Residuals by group
 plotResiduals(res)
 testZeroInflation(res)
-testDispersion(res) 
+simOutput_cond <- simulateResiduals(FASMEE23_LiveRatioModel, re.form = NULL)
+testDispersion(simOutput_cond) 
 
-# Calculate marginal means and contrasts
-emm_log <- emmeans(FASMEE23_LiveRatioModel, ~ SmokeLevel)
-emm_response <- emmeans(FASMEE23_LiveRatioModel, ~ SmokeLevel, type = "response")
-rate_ratios_vs_none <- contrast(emm_log, method = "trt.vs.ctrl", ref = "None", type = "response")
+print(drop1(FASMEE23_LiveRatioModel, test = "Chisq")) 
 
-print(rate_ratios_vs_none)
 ```
 
 ## [9.1] FASMEE23 Live Bacteria Ratio Model Analysis
