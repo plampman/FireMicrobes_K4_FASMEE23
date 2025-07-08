@@ -658,7 +658,7 @@ print(smoke_summary)
 FASMEE23_SporeCatModel <- glmmTMB(TotalSpores ~ SmokeLevel + offset(log(RepVolume_L)) + 
                           (1|Platform:SampleID) + (1|LB_Batch),
                         family=nbinom2(link="log"), data = FASMEE23_spores_pa_C, 
-                        ziformula = ~-1, dispformula = ~SmokeLevel)
+                        ziformula = ~-1, dispformula = ~ SmokeLevel)
 summary(FASMEE23_SporeCatModel)
 
 # DHARMa diagnostics
@@ -808,6 +808,7 @@ bacteria <- FASMEE23_bacteria %>%
     SmokeLevel = if_else(Platform == "Red", "None", SmokeLevel),
     SmokeLevel = factor(SmokeLevel, levels = c("None", "Low", "High")),
     LiveRatio = LIVECounts / TotalCells) 
+
 
 # Tidy data summary
 cat("=== FASMEE23 Bacteria Data Summary ===\n")
@@ -973,21 +974,59 @@ print(smoke_summary)
 FASMEE23_BacteriaCatModel <- glmmTMB(TotalCells ~ SmokeLevel + offset(log(RepVolume_L)) + 
                            (1|Platform:SampleID) + (1|LB_Batch),
                          family=nbinom2(link="log"), data = bacteria, 
-                         ziformula = ~1, dispformula = ~SmokeLevel)
+                         ziformula = ~ SmokeLevel, dispformula = ~ (1|Platform:SampleID))
 summary(FASMEE23_BacteriaCatModel)
 
 # DHARMa diagnostics
 res <- simulateResiduals(fittedModel = FASMEE23_BacteriaCatModel, plot = FALSE)
 plotQQunif(res)
-plotResiduals(res, bacteria$SmokeLevel)  # Residuals by group
+testCategorical(res, catPred = bacteria$SmokeLevel) # Residuals by group
 plotResiduals(res)
 testZeroInflation(res)
-testDispersion(res) 
+simOutput_cond <- simulateResiduals(FASMEE23_BacteriaCatModel, re.form = NULL)
+testDispersion(simOutput_cond) 
+
+print(drop1(FASMEE23_BacteriaCatModel, test = "Chisq")) 
+
+# # Calculate marginal means and contrasts
+# emm_log <- emmeans(FASMEE23_BacteriaCatModel, ~ SmokeLevel)
+# emm_response <- emmeans(FASMEE23_BacteriaCatModel, ~ SmokeLevel, type = "response")
+# rate_ratios_vs_none <- contrast(emm_log, method = "trt.vs.ctrl", ref = "None", type = "response")
+# 
+# # Create prediction dataframe
+# bacteria_cat <- as.data.frame(emm_response) %>% 
+#   mutate(
+#     Bacteria.m3 = (response*7225)/0.03,
+#     CI_lower = (asymp.LCL * 7225) / 0.03,
+#     CI_upper = (asymp.UCL * 7225) / 0.03
+#   )
+
+```
+#### Smoke level is not a significant predictor in this model, lets try smoke vs ambient
+
+```{r}
+
+FASMEE23_BacteriaCatModel <- glmmTMB(TotalCells ~ SampleType + offset(log(RepVolume_L)) + 
+                           (1|Platform:SampleID) + (1|LB_Batch),
+                         family=nbinom2(link="log"), data = bacteria, 
+                         ziformula = ~1, dispformula = ~ (1|Platform:SampleID))
+summary(FASMEE23_BacteriaCatModel)
+
+# DHARMa diagnostics
+res <- simulateResiduals(fittedModel = FASMEE23_BacteriaCatModel, plot = FALSE)
+plotQQunif(res)
+testCategorical(res, catPred = bacteria$SampleType) # Residuals by group
+plotResiduals(res)
+testZeroInflation(res)
+simOutput_cond <- simulateResiduals(FASMEE23_BacteriaCatModel, re.form = NULL)
+testDispersion(simOutput_cond) 
+
+print(drop1(FASMEE23_BacteriaCatModel, test = "Chisq")) 
 
 # Calculate marginal means and contrasts
-emm_log <- emmeans(FASMEE23_BacteriaCatModel, ~ SmokeLevel)
-emm_response <- emmeans(FASMEE23_BacteriaCatModel, ~ SmokeLevel, type = "response")
-rate_ratios_vs_none <- contrast(emm_log, method = "trt.vs.ctrl", ref = "None", type = "response")
+emm_log <- emmeans(FASMEE23_BacteriaCatModel, ~ SampleType)
+emm_response <- emmeans(FASMEE23_BacteriaCatModel, ~ SampleType, type = "response")
+rate_ratios_vs_none <- pairs(emm_response, reverse = T)
 
 # Create prediction dataframe
 bacteria_cat <- as.data.frame(emm_response) %>% 
@@ -999,6 +1038,7 @@ bacteria_cat <- as.data.frame(emm_response) %>%
 
 ```
 
+
 ## [8.2] Predictions from FASMEE23 bacteria GLMM model
 ```{r FASMEE23 bacteria Marginal means, echo=FALSE}
 print(bacteria_cat)
@@ -1006,7 +1046,7 @@ print(bacteria_cat)
 
 ## [8.3] Ratios from FASMEE23 bacteria GLMM model
 ```{r FASMEE23 bacteria contrast-results, echo=FALSE}
-print(rate_ratios_vs_none)
+print(summary(rate_ratios_vs_none, infer = T))
 ```
 
 ## [8.4] Plotting FASMEE23 bacteria model results with raw data as points/violin plots
@@ -1015,9 +1055,9 @@ print(rate_ratios_vs_none)
 # Create significance bars
 contrast_df <- as.data.frame(rate_ratios_vs_none)
 sig_bars <- data.frame(
-  x = c(1, 1),
-  xend = c(2, 3),
-  pair = c("Low / None", "High / None"),
+  x = c(1),
+  xend = c(2),
+  pair = c("Smoke / Ambient"),
   stringsAsFactors = FALSE
 )
 
@@ -1031,30 +1071,28 @@ sig_bars$p_value <- sapply(sig_bars$pair, function(pair) {
 })
 
 max_height <- max(bacteria_cat$CI_upper, na.rm = TRUE)
-sig_bars$y <- max_height * c(3.1, 3.3)
+sig_bars$y <- max_height * c(3.1)
 sig_bars$annotation <- ifelse(
   is.na(sig_bars$p_value),
   'plain("")',
-  paste0("italic(P)[dunnettx-adj]==", signif(sig_bars$p_value, 2))
+  paste0("italic(p)==", signif(sig_bars$p_value, 2))
 )
 
 
-p1 <- ggplot(bacteria_cat, aes(x = SmokeLevel, y = Bacteria.m3)) +
+p1 <- ggplot(bacteria_cat, aes(x = SampleType, y = Bacteria.m3)) +
     geom_point(data = bacteria, 
-             aes(x = SmokeLevel, y = TotalCells_corrected.m3), 
+             aes(x = SampleType, y = TotalCells_corrected.m3), 
              position = position_jitter(width = 0.1), 
              alpha = 0.5, size = 2, color = "#0072B2") +
   geom_violin(data = bacteria, 
-              aes(x = SmokeLevel, y = TotalCells_corrected.m3), 
+              aes(x = SampleType, y = TotalCells_corrected.m3), 
               fill = NA, color = "black", width = 0.8, alpha = 0.5) +
   geom_col(fill = "#0072B2", alpha = 0.6) +
   geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper), 
                 width = 0.2, color = "black", linewidth = 1.1) +
-  labs(x = expression(PM[2.5]~("μg"~m^{-3})),
+  labs(x = "Sample Type",
        y = expression(Bacteria~m^{-3}),
-       title = expression(
-         paste("Smoke vs. Ambient Subalpine Forest Bacteria by ", 
-         PM[2.5], " Range"))) +
+       title = "Smoke vs. Ambient Subalpine Forest Bacteria") +
   theme_bw() +
   theme(text = element_text(size = 10),
         plot.title = element_text(hjust = 0.5, face = "bold"),
@@ -1071,8 +1109,8 @@ p1 <- ggplot(bacteria_cat, aes(x = SmokeLevel, y = Bacteria.m3)) +
   geom_text(data = sig_bars,
             aes(x = (x + xend) / 2, y = y + max_height * 0.02, label = annotation),
             size = 3.2, vjust = 0, parse = TRUE) +
-  scale_x_discrete(labels = c("None\n(<20)", "Low\n(20-400)", "High\n(>400)")) +
-  coord_cartesian(ylim = c(0, max(bacteria$TotalCells_corrected.m3 * 0.5)))
+  scale_x_discrete(labels = c("Ambient", "Smoke")) +
+  coord_cartesian(ylim = c(0, max(bacteria$TotalCells_corrected.m3 * 0.2)))
 
 print(p1)
 ```
