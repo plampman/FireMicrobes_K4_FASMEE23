@@ -431,7 +431,7 @@ p1 <- ggplot(spore_cat, aes(x = SampleType, y = Spores.m3)) +
   geom_col(fill = "#0072B2", alpha = 0.6) +
   geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper), 
                 width = 0.2, color = "black", linewidth = 1.1) +
-  labs(x = expression(PM[2.5]~"range"), 
+  labs(x = "Sample Type", 
        y = expression(Spores~m^{-3}),
        title = "Smoke vs. Ambient Tallgrass Prairie Fungal Spores") +
   theme_bw() +
@@ -450,10 +450,30 @@ p1 <- ggplot(spore_cat, aes(x = SampleType, y = Spores.m3)) +
   geom_text(data = sig_bars,
             aes(x = (x + xend) / 2, y = y + max_height * 0.02, label = annotation),
             size = 3.2, vjust = 0, parse = TRUE) +
-  scale_x_discrete(labels = c("Ambient", "Smoke")) +
+    geom_point(aes(y = Spores.m3), color = "darkred", size = 3) +
+  # Add dashed line from point to label
+  geom_segment(aes(x = as.numeric(SampleType), 
+                   xend = as.numeric(SampleType) + 0.2,  
+                   y = Spores.m3, 
+                   yend = Spores.m3 + 50000),  # Angle upward
+               linetype = "dashed", color = "black", linewidth = 0.7) +
+  # Add lambda-hat labels
+  geom_label(data = spore_cat, 
+            aes(label = paste0("hat(lambda) == ", 
+                              round(Spores.m3/10^floor(log10(Spores.m3)), 2), 
+                              " %*% 10^", floor(log10(Spores.m3))),
+                x = as.numeric(SampleType) + 0.2,  
+                y = Spores.m3 + 50000),
+            hjust = 0, size = 3, parse = TRUE,
+            fill = "white", color = "black", 
+            label.padding = unit(0.25, "lines"),
+            label.r = unit(0.15, "lines")) +
   coord_cartesian(ylim = c(0, max(Konza4_spores_pa_C$TotalSpores_corrected.m3 * 0.5)))
 
 print(p1)
+
+ggsave('Output/Output_figs/K4/K4_SmokeVsAmbient_SporeModel.png', p1, dpi = 600, width = 5, height = 4, units = "in")
+
 ```
 
 ## [5.5] Konza4 Spore Model Analysis
@@ -719,14 +739,14 @@ sig_bars$p_value <- sapply(sig_bars$pair, function(pair) {
 })
 
 max_height <- max(spore_cat$CI_upper, na.rm = TRUE)
-sig_bars$y <- max_height * c(2.9, 3.1, 3.3)
+sig_bars$y <- max_height * c(2.75, 3.05, 3.3)
 sig_bars$annotation <- ifelse(
   is.na(sig_bars$p_value),
   'plain("")',
   paste0("italic(p)[Tukey-adj]==", signif(sig_bars$p_value, 2))
 )
 
-p1 <- ggplot(spore_cat, aes(x = SmokeLevel, y = Spores.m3)) +
+p2 <- ggplot(spore_cat, aes(x = SmokeLevel, y = Spores.m3)) +
     geom_point(data = FASMEE23_spores_pa_C, 
              aes(x = SmokeLevel, y = TotalSpores_corrected.m3), 
              position = position_jitter(width = 0.1), 
@@ -737,7 +757,7 @@ p1 <- ggplot(spore_cat, aes(x = SmokeLevel, y = Spores.m3)) +
   geom_col(fill = "#0072B2", alpha = 0.6) +
   geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper), 
                 width = 0.2, color = "black", linewidth = 1.1) +
-  labs(x = expression(PM[2.5]~"range"), 
+  labs(x = expression(PM[2.5]~"("*mu*g~m^{-3}*") range"),  
        y = expression(Spores~m^{-3}),
        title = expression(
          paste("Smoke vs. Ambient Subalpine Forest Fungal Spores by ", 
@@ -756,12 +776,33 @@ p1 <- ggplot(spore_cat, aes(x = SmokeLevel, y = Spores.m3)) +
                aes(x = xend, xend = xend, y = y, yend = y - max_height * 0.05),
                linewidth = 0.5) +
   geom_text(data = sig_bars,
-            aes(x = (x + xend) / 2, y = y + max_height * 0.02, label = annotation),
+            aes(x = (x + xend) / 2.07, y = y + max_height * 0.02, label = annotation),
             size = 3.2, vjust = 0, parse = TRUE) +
+  # Add red points for means
+  geom_point(aes(y = Spores.m3), color = "darkred", size = 3) +
+  # Add dashed line from point to label
+  geom_segment(aes(x = as.numeric(SmokeLevel), 
+                   xend = as.numeric(SmokeLevel) + 0.15,  
+                   y = Spores.m3, 
+                   yend = Spores.m3 + 200000),  
+               linetype = "dotdash", color = "darkred", linewidth = 0.7) +
+  # Add lambda-hat labels
+  geom_label(data = spore_cat, 
+            aes(label = paste0("hat(lambda) == ", 
+                              round(Spores.m3/10^floor(log10(Spores.m3)), 2), 
+                              " %*% 10^", floor(log10(Spores.m3))),
+                x = as.numeric(SmokeLevel) + 0.15,  
+                y = Spores.m3 + 200000),
+            hjust = 0, size = 2.7, parse = TRUE,
+            fill = "white", color = "black", 
+            label.padding = unit(0.25, "lines"),
+            label.r = unit(0.15, "lines")) +
   scale_x_discrete(labels = c("None\n(<20)", "Low\n(20-400)", "High\n(>400)")) +
   coord_cartesian(ylim = c(0, max(FASMEE23_spores_pa_C$TotalSpores_corrected.m3 * 0.5)))
 
-print(p1)
+print(p2)
+
+ggsave('Output/Output_figs/FASMEE23/FASMEE23_SmokeLevels_SporeModel.png', p2, dpi = 600, width = 6.5, height = 4, units = "in")
 ```
 
 ## [7.5] FASMEE23 Spore Model Analysis
@@ -1199,10 +1240,9 @@ Konza4_smoke_spores <- Konza4_spores_pa_C %>%
 
 ## [10.1] GLMM model for Konza4 smoke spore abundance vs. environmental drivers and DHARMa diagnostics for assessment
 ```{r Konza4 smoke spore GLMM}
-Konza4_Smoke_model <- glmmTMB(TotalSpores ~ MedianPM2.5_ug.m3 + MeanTemp_C + MeanMR + offset(log(RepVolume_L)) + 
+Konza4_Smoke_model <- glmmTMB(TotalSpores ~ MedianPM2.5_ug.m3 + MeanMR + MeanRH + offset(log(RepVolume_L)) + 
                          (1|SampleID) + (1|LB_Batch),
-                       family=nbinom2(link="log"), data = Konza4_smoke_spores, 
-                       ziformula = ~1)
+                       family=nbinom2(link="log"), data = Konza4_smoke_spores)
 summary(Konza4_Smoke_model)
 
 res <- simulateResiduals(fittedModel = Konza4_Smoke_model, plot = F)
@@ -1210,7 +1250,11 @@ plotResiduals(res)
 plotQQunif(res)
 
 testZeroInflation(res)
-testDispersion(res) 
+
+simOutput_cond <- simulateResiduals(Konza4_Smoke_model, re.form = NULL)
+testDispersion(simOutput_cond)
+
+
 ```
 ## [10.2] Plotting Konza4 smoke spore model vs. environmental drivers with raw data as points
 ```{r Konza4 smoke spore model plotting, fig.width=8, fig.height=5, fig.cap="Konza4 Smoke Spore Abundance vs. PM2.5 and Moisture Ratio"}
@@ -1292,7 +1336,7 @@ FASMEE23_smoke_spores <- FASMEE23_spores_pa_C %>%
 
 ### FASMEE23 smoke spore abundance vs. environmental drivers model shows poor fit and no significant effects
 ```{r FASMEE23 smoke spore GLMM}
-FASMEE23_Smoke_model <- glmmTMB(TotalSpores ~ MedianPM2.5_ug.m3 + MeanRH + MeanTemp_C + offset(log(RepVolume_L)) + 
+FASMEE23_Smoke_model <- glmmTMB(TotalSpores ~ MeanTemp_C + MeanRH + offset(log(RepVolume_L)) + 
                          (1|SampleID) + (1|LB_Batch),
                        family=nbinom2(link="log"), data = FASMEE23_smoke_spores, 
                        ziformula = ~-1)
