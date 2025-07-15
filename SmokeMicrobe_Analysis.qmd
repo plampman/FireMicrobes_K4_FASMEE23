@@ -459,7 +459,7 @@ p1 <- ggplot(spore_cat, aes(x = SampleType, y = Spores.m3)) +
                linetype = "dashed", color = "black", linewidth = 0.7) +
   # Add lambda-hat labels
   geom_label(data = spore_cat, 
-            aes(label = paste0("hat(lambda) == ", 
+            aes(label = paste0("hat(mu) == ", 
                               round(Spores.m3/10^floor(log10(Spores.m3)), 2), 
                               " %*% 10^", floor(log10(Spores.m3))),
                 x = as.numeric(SampleType) + 0.2,  
@@ -475,31 +475,6 @@ print(p1)
 ggsave('Output/Output_figs/K4/K4_SmokeVsAmbient_SporeModel.png', p1, dpi = 600, width = 5, height = 4, units = "in")
 
 ```
-
-## [5.5] Konza4 Spore Model Analysis
-
-### Model Diagnostics
-- **Overall fit:**  Good (KS test non-significant)
-- **Dispersion:** Appropriate (non-significant)
-- **Zero-inflation:** Well-modeled (non-significant)
-- **Outliers:** None detected (non-significant)
-- **Group-level residuals:** Uniform across smoke levels (Levene test n.s.)
-- **Possible issues:** DHARMa residuals vs. predicted values show quantile deviations with combined adjusted quantile test being significant
-
-### Model Results
-- **Effect Sizes:**
-  - Low smoke: 5.48× increase vs. ambient (p = 0.0470)
-  - High smoke: 5.28× increase vs. ambient (p = 0.0346)
-- **Predicted Spore Concentrations (Spores/m³):**
-  - None: 19,780
-  - Low: 105,774
-  - High: 104,491
-- **Random Effects:** SampleID variance = 0.296, LB_Batch variance ≈ 0
-- **Dispersion parameter:** 1.49 (constant)
-- **Zero-inflation:** Simple intercept model
-
-**Interpretation:**
-Konza4 shows a strong and consistent increase in spore concentrations under both low and high smoke conditions, with both smoke levels resulting in over fivefold increases compared to ambient air. The absolute concentrations in smoke are around 105,000 spores/m³, with a baseline of ~20,000 spores/m³ in ambient air. See Figure [Konza4 Spore GLMM predictions and raw data by smoke level] for visualization.
 
 # [6] FASMEE23 spore data summary
 ```{r FASMEE23 spores, echo=FALSE}
@@ -788,7 +763,7 @@ p2 <- ggplot(spore_cat, aes(x = SmokeLevel, y = Spores.m3)) +
                linetype = "dotdash", color = "darkred", linewidth = 0.7) +
   # Add lambda-hat labels
   geom_label(data = spore_cat, 
-            aes(label = paste0("hat(lambda) == ", 
+            aes(label = paste0("hat(mu) == ", 
                               round(Spores.m3/10^floor(log10(Spores.m3)), 2), 
                               " %*% 10^", floor(log10(Spores.m3))),
                 x = as.numeric(SmokeLevel) + 0.15,  
@@ -804,31 +779,6 @@ print(p2)
 
 ggsave('Output/Output_figs/FASMEE23/FASMEE23_SmokeLevels_SporeModel.png', p2, dpi = 600, width = 6.5, height = 4, units = "in")
 ```
-
-## [7.5] FASMEE23 Spore Model Analysis
-
-### Model Diagnostics
-- **Overall fit:** Good (KS test non-significant)
-- **Dispersion:** Appropriate (non-significant)
-- **Zero-inflation:** Well-modeled (non-significant)
-- **Outliers:** None detected (non-significant)
-- **Group-level residuals:** No deviations noted and Levene test n.s.
-
-### Model Results
-- **Effect Sizes:**
-  - Low smoke: 6.06× increase vs. ambient (p < 0.0001)
-  - High smoke: 3.02× increase vs. ambient (p = 0.016)
-- **Predicted Spore Concentrations (Spores/m³):**
-  - None: 81,232
-  - Low: 492,328
-  - High: 245,717
-- **Random Effects:** Platform:SampleID variance = 0.354, LB_Batch variance ≈ 0
-- **Dispersion parameter:** Variable by smoke level (significant dispersion effects)
-- **Zero-inflation:** Simple intercept model
-
-**Interpretation:**
-FASMEE23 exhibits a much higher baseline spore concentration (~81,000 spores/m³) compared to Konza4, and a dramatic increase under low smoke (over 6×), with a somewhat lower but still significant increase under high smoke (3×). The model diagnostics are decent, though one within-group deviation is noted. The model structure accounts for platform differences and variable dispersion. See Figure [FASMEE23 Spore GLMM predictions and raw data by smoke level] for visualization.
-
 
 # [8] Modeling for Research Question #1: FASMEE23 bacteria abundance in ambient vs. smoke conditions
 
@@ -1156,41 +1106,6 @@ p1 <- ggplot(bacteria_cat, aes(x = SampleType, y = Bacteria.m3)) +
 print(p1)
 ```
 
-## [8.5] FASMEE23 Bacteria Abundance Model Analysis
-
-### Model Diagnostics
-- **Overall fit:** Excellent (KS test p = 0.876, non-significant)
-- **Dispersion:** Appropriate (p = 0.914, non-significant)
-- **Zero-inflation:** Well-modeled (p = 0.998, non-significant)
-- **Outliers:** None detected (p = 0.412, non-significant)
-- **Group-level residuals:** Group level deviations and significant Levene test
-
-### Model Results
-- **Effect Sizes:**
-  - Low smoke: 4.82× increase vs. ambient (p < 0.0001)
-  - High smoke: 2.91× increase vs. ambient (p = 0.012)
-- **Predicted Bacteria Concentrations (Bacteria/m³):**
-  - None: 156,432
-  - Low: 753,998
-  - High: 455,215
-- **Random Effects:** Platform:SampleID variance = 0.328, LB_Batch variance ≈ 0
-- **Dispersion parameter:** Variable by smoke level (significant dispersion effects)
-- **Zero-inflation:** Simple intercept model
-
-**Interpretation:**
-FASMEE23 shows a strong response to smoke conditions for bacterial concentrations, with a dramatic increase under low smoke (nearly 5×) and a more moderate but still significant increase under high smoke (nearly 3×). The model diagnostics are excellent, with no significant deviations or issues. The model structure effectively accounts for platform differences and variable dispersion across smoke levels. See Figure [FASMEE23 Bacteria GLMM predictions and raw data by smoke level] for visualization.
-
-### Comparison with Spore Results
-- **Baseline Concentrations:** Bacterial concentrations are higher than spore concentrations in both ambient and smoke conditions
-- **Smoke Response:** Both microbes show similar patterns of stronger response to low smoke than high smoke
-- **Model Structure:** Both models use similar random effects and dispersion modeling approaches
-- **Statistical Power:** Both models show highly significant effects with excellent diagnostics
-
-### Ecological Implications
-- The higher bacterial concentrations suggest bacteria may be more abundant than fungi in this forest ecosystem
-- The similar response patterns to smoke suggest both microbial groups respond similarly to combustion conditions
-- The stronger response to low smoke may indicate optimal conditions for microbial release during moderate combustion
-
 # [9] Modeling for research question #3: FASMEE23 live bacteria ratio in ambient vs. smoke conditions
 ```{r FASMEE23 Live bacteria ratio}
 FASMEE23_LiveRatioModel <- glmmTMB(cbind(LIVECounts, TotalCells - LIVECounts) ~ SampleType +
@@ -1210,25 +1125,6 @@ testDispersion(simOutput_cond)
 print(drop1(FASMEE23_LiveRatioModel, test = "Chisq")) 
 
 ```
-
-## [9.1] FASMEE23 Live Bacteria Ratio Model Analysis
-
-### Model Diagnostics
-- **Overall fit:** Excellent (KS test p = 0.876, non-significant)
-- **Dispersion:** Appropriate (p = 0.914, non-significant)
-- **Zero-inflation:** Well-modeled (p = 0.998, non-significant)
-- **Outliers:** None detected (p = 0.412, non-significant)
-- **Group-level residuals:** Group level deviations and significant Levene test
-
-### Model Results
-- **Significance:** No significant differences in live to total bacteria ratio between smoke and ambient conditions
-- **Predicted Live Bacteria Ratios:**
-  - None: 0.82
-  - Low: 0.78
-  - High: 0.88
-- **Random Effects:** Platform:SampleID variance = 0.328, LB_Batch variance ≈ 0
-- **Dispersion parameter:** Variable by smoke level (significant dispersion effects)
-
 
 # [10] Modeling for research question #2: Environmental drivers of Konza4 smoke spore abundance
 
@@ -1328,7 +1224,7 @@ p_mr <- ggplot() +
 
 ```{r FASMEE23 smoke spores, echo=FALSE}
 FASMEE23_smoke_spores <- FASMEE23_spores_pa_C %>%
-  filter(SampleType == "Smoke")
+  filter(SampleType == "Smoke" & Platform == "Blue")
 
 ```
 
@@ -1336,18 +1232,21 @@ FASMEE23_smoke_spores <- FASMEE23_spores_pa_C %>%
 
 ### FASMEE23 smoke spore abundance vs. environmental drivers model shows poor fit and no significant effects
 ```{r FASMEE23 smoke spore GLMM}
-FASMEE23_Smoke_model <- glmmTMB(TotalSpores ~ MeanTemp_C + MeanRH + offset(log(RepVolume_L)) + 
+FASMEE23_Smoke_model <- glmmTMB(TotalSpores ~ MeanMR + MeanRH + offset(log(RepVolume_L)) + 
                          (1|SampleID) + (1|LB_Batch),
                        family=nbinom2(link="log"), data = FASMEE23_smoke_spores, 
-                       ziformula = ~-1)
+                       ziformula = ~-1, dispformula = ~(1|SampleID))
 summary(FASMEE23_Smoke_model)
 
 res <- simulateResiduals(fittedModel = FASMEE23_Smoke_model, plot = F)
 plotResiduals(res)
+plotResiduals(res, FASMEE23_smoke_spores$MeanRH)
 plotQQunif(res)
 
 testZeroInflation(res)
-testDispersion(res) 
+
+simOutput_cond <- simulateResiduals(FASMEE23_Smoke_model, re.form = NULL)
+testDispersion(simOutput_cond) 
 ```
 
 
@@ -1362,10 +1261,10 @@ FASMEE23_smoke_bacteria <- bacteria %>%
 
 ### FASMEE23 smoke bacteria abundance vs. environmental drivers model shows poor fit and no significant effects
 ```{r FASMEE23 smoke bacteria GLMM}
-FASMEE23_Smoke_model <- glmmTMB(TotalCells ~ MeanMR + MedianPM2.5_ug.m3 + MeanTemp_C + offset(log(RepVolume_L)) + 
+FASMEE23_Smoke_model <- glmmTMB(TotalCells ~ MeanMR + MedianPM2.5_ug.m3 + MeanRH + offset(log(RepVolume_L)) + 
                           (1|SampleID) + (1|LB_Batch),
                         family=nbinom2(link="log"), data = FASMEE23_smoke_bacteria, 
-                        ziformula = ~1)
+                        ziformula = ~1, dispformula = ~(1|SampleID))
 summary(FASMEE23_Smoke_model)
 
 res <- simulateResiduals(fittedModel = FASMEE23_Smoke_model, plot = F)
@@ -1373,7 +1272,8 @@ plotResiduals(res)
 plotQQunif(res)
 
 testZeroInflation(res)
-testDispersion(res) 
+simOutput_cond <- simulateResiduals(FASMEE23_Smoke_model, re.form = NULL)
+testDispersion(simOutput_cond) 
 ```
 
 
@@ -1432,15 +1332,18 @@ print(p1)
 fasmee23_k4_spores_model <- glmmTMB(TotalSpores ~ Project_SampleType + offset(log(RepVolume_L)) + 
                                     (1|SampleID) + (1|LB_Batch),
                                   family=nbinom2(link="log"), data = fasmee23_k4_spores, 
-                                  ziformula = ~SmokeLevel)
+                                  ziformula = ~-1, dispformula = ~(1|SampleID))
 summary(fasmee23_k4_spores_model)
 
 res <- simulateResiduals(fittedModel = fasmee23_k4_spores_model, plot = F)
 plotResiduals(res)
 plotQQunif(res)
-plotResiduals(res, fasmee23_k4_spores$Project_SampleType)
+testCategorical(res, catPred = fasmee23_k4_spores$Project_SampleType)
 testZeroInflation(res)
-testDispersion(res) 
+simOutput_cond <- simulateResiduals(FASMEE23_Smoke_model, re.form = NULL)
+testDispersion(simOutput_cond) 
+
+print(drop1(fasmee23_k4_spores_model, test = "Chisq"))
 ```
 ## [14.2] Marginal means and contrasts for Konza4 and FASMEE23 site comparison
 ```{r Konza4 and FASMEE23 site comparison marginal means and contrasts}
@@ -1448,13 +1351,7 @@ testDispersion(res)
 emm_log <- emmeans(fasmee23_k4_spores_model, ~ Project_SampleType)
 emm_response <- emmeans(fasmee23_k4_spores_model, ~ Project_SampleType, type = "response")
 
-custom_contrasts <- list(
-  "Konza4 Smoke vs Ambient" = c(-1, 1, 0, 0),
-  "FASMEE23 Smoke vs Ambient" = c(0, 0, -1, 1),
-  "Ambient: FASMEE23 vs Konza4" = c(-1, 0, 1, 0),
-  "Smoke: FASMEE23 vs Konza4" = c(0, -1, 0, 1)
-)
-rate_ratios <- contrast(emm_log, custom_contrasts, type = "response")
+rate_ratios <- pairs(emm_log, type = "response", reverse = T)
 
 site_comparison_cat <- as.data.frame(emm_response) %>%
   mutate(
@@ -1465,7 +1362,7 @@ site_comparison_cat <- as.data.frame(emm_response) %>%
 
 contrast_df <- as.data.frame(rate_ratios)
 
-print(rate_ratios)
+print(summary(rate_ratios, infer = T))
 print(site_comparison_cat)
 ```
 ## [14.3] Plotting Konza4 and FASMEE23 site comparison
@@ -1553,44 +1450,6 @@ p1 <- ggplot(site_comparison_cat, aes(x = Project_SampleType, y = Spores.m3)) +
 
 print(p1)
 ```
-
-## [14.4] Comparison of Konza4 and FASMEE23 Results
-
-### Statistical Results Comparison
-
-| Site     | Low Smoke      | High Smoke     |
-|----------|----------------|---------------|
-| Konza4   | 5.35× (p=0.037)| 5.28× (p=0.030)|
-| FASMEE23 | 6.06× (p<0.0001)| 3.02× (p=0.016)|
-
-| Site     | None   | Low     | High    |
-|----------|--------|---------|---------|
-| Konza4   | 19,780 | 105,774 | 104,491 |
-| FASMEE23 | 81,232 | 492,328 | 245,717 |
-
-### Key Findings
-- **Baseline Differences:** FASMEE23 has ~4× higher ambient spore concentrations than Konza4, indicating fundamental ecosystem differences.
-- **Smoke Response Patterns:** Konza4 shows similar increases for both low and high smoke (~5.3×), while FASMEE23 shows a stronger response to low smoke (6.06×) than high smoke (3.02×).
-- **Absolute Concentrations:** FASMEE23 reaches much higher peak concentrations in smoke (up to ~492,000 spores/m³).
-- **Statistical Power:** FASMEE23 effects are highly significant; Konza4 effects are significant but less powerful.
-
-### Model Quality Assessment
-- Both models show excellent diagnostics, robust random effects, and strong evidence for smoke effects.
-- FASMEE23 uses more sophisticated dispersion modeling and accounts for platform differences.
-
-### Ecological Interpretations
-- Forest systems (FASMEE23) have higher baseline fungal abundance and more variable smoke response.
-- Prairie systems (Konza4) show a more consistent dose-response to smoke.
-- Combustion and ecosystem differences likely drive these patterns.
-
-### Limitations
-- Point-in-time sampling; no seasonal/long-term trends captured.
-- Localized drone sampling may not represent landscape-scale patterns.
-- Some model overparameterization and unbalanced designs.
-- Measurement uncertainty in spore viability and PM2.5-based smoke classification.
-
-### Conclusions
-Both GLMMs provide robust evidence for smoke effects on fungal spore concentrations, with forest fires producing higher absolute concentrations and prairie fires showing more consistent dose-response. The modeling approach effectively captures bioaerosol dynamics across fire regimes, though temporal and spatial limitations should be considered.
 
 # [15] Emission Factors
 
