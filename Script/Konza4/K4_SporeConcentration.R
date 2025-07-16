@@ -78,7 +78,8 @@ spores <- spores %>%
 Ambient_mean <- spores %>%
   filter(SampleType == "Ambient") %>%
   summarise( # Ambient mean for background correction
-    AmbientSpores.FOV = mean(TotalSpores_FBLBcorr)
+    AmbientSpores.FOV = mean(TotalSpores_FBLBcorr),
+    AmbientSpores.m3 = mean((TotalSpores_FBLBcorr * FOV1000x.filter)/RepVolume_m3)
   )
 
 spores <- spores %>%
@@ -87,10 +88,8 @@ spores <- spores %>%
          TotalSpores.m3 = TotalSpores.filter/RepVolume_m3,
          TotalSpores.filter_FBLBcorr = TotalSpores_FBLBcorr*FOV1000x.filter,
          TotalSpores_FBLBcorr.m3 = TotalSpores.filter_FBLBcorr/RepVolume_m3,
-         TotalSpores_Bcorr = if_else(SampleType == "Smoke", pmax(0, TotalSpores_FBLBcorr - Ambient_mean$AmbientSpores.FOV), NA),
-         TotalSpores_Bcorr.m3 = (TotalSpores_Bcorr*FOV1000x.filter)/RepVolume_m3,
-         log_volume_offset_m3 = if_else(SampleType == "Smoke" | SampleType == "Ambient", log(RepVolume_m3), 0)
-  )
+         TotalSpores_Bcorr.m3 = if_else(SampleType == "Smoke", pmax(0, TotalSpores_FBLBcorr.m3 - Ambient_mean$AmbientSpores.m3), NA),
+         log_volume_offset_m3 = if_else(SampleType == "Smoke" | SampleType == "Ambient", log(RepVolume_m3), 0))
 
 spores_pa <- left_join(spores, PA_stats_k4, by = c('Sample_num' = 'Sample'))
 
