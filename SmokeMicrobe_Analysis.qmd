@@ -368,10 +368,10 @@ print(drop1(Konza4_SporeCatModel, test = "Chisq"))
 # Calculate marginal means and contrasts
 emm_log <- emmeans(Konza4_SporeCatModel, ~ SampleType)
 emm_response <- emmeans(Konza4_SporeCatModel, ~ SampleType, type = "response")
-rate_ratios_vs_none <- pairs(emm_response, reverse = T)
+K4_rate_ratios <- pairs(emm_response, reverse = T)
 
 # Create prediction dataframe
-spore_cat <- as.data.frame(emm_response) %>% 
+K4_spore_cat <- as.data.frame(emm_response) %>% 
   mutate(
     Spores.m3 = (response*7225)/0.03,
     CI_lower = (asymp.LCL * 7225) / 0.03,
@@ -383,96 +383,100 @@ spore_cat <- as.data.frame(emm_response) %>%
 
 ## [5.2] Predictions from Konza4 spore GLMM model
 ```{r Marginal means, echo=FALSE}
-print(spore_cat)
+print(K4_spore_cat)
 ```
 
 ## [5.3] Ratios from Konza4 spore GLMM model
 ```{r contrast-results, echo=FALSE}
-print(summary(rate_ratios_vs_none, infer = T))
+print(summary(K4_rate_ratios, infer = T))
 ```
 
 ## [5.4] Plotting Konza4 spore model results with raw data as points/violin plots
 ```{r Plotting model results, fig.cap="Konza 4 Spore GLMM predictions and raw data by smoke level with significance bars"}
 
 # Create significance bars
-contrast_df <- as.data.frame(rate_ratios_vs_none)
-sig_bars <- data.frame(
+K4_contrast_df <- as.data.frame(K4_rate_ratios)
+K4_sig_bars <- data.frame(
   x = c(1),
   xend = c(2),
   pair = c("Smoke / Ambient"),
   stringsAsFactors = FALSE
 )
 
-sig_bars$p_value <- sapply(sig_bars$pair, function(pair) {
-  idx <- which(contrast_df$contrast == pair)
+K4_sig_bars$p_value <- sapply(K4_sig_bars$pair, function(pair) {
+  idx <- which(K4_contrast_df$contrast == pair)
   if(length(idx) > 0) {
-    return(contrast_df$p.value[idx])
+    return(K4_contrast_df$p.value[idx])
   } else {
     return(1.0) 
   }
 })
 
-max_height <- max(spore_cat$CI_upper, na.rm = TRUE)
-sig_bars$y <- max_height * c(2.7)
-sig_bars$annotation <- ifelse(
-  is.na(sig_bars$p_value),
+K4_max_height <- max(K4_spore_cat$CI_upper, na.rm = TRUE)
+K4_sig_bars$y <- K4_max_height * c(2.7)
+K4_sig_bars$annotation <- ifelse(
+  is.na(K4_sig_bars$p_value),
   'plain("")',
-  paste0("italic(p) ==", signif(sig_bars$p_value, 2))
+  paste0("italic(p) ==", signif(K4_sig_bars$p_value, 2))
 )
 
-p1 <- ggplot(spore_cat, aes(x = SampleType, y = Spores.m3)) +
-    geom_point(data = Konza4_spores_pa_C, 
-             aes(x = SampleType, y = TotalSpores_corrected.m3), 
-             position = position_jitter(width = 0.1), 
-             alpha = 0.5, size = 2, color = "#0072B2") +
+k4_spore_plt <- ggplot(K4_spore_cat, aes(x = SampleType, y = Spores.m3)) + 
+  geom_point(data = Konza4_spores_pa_C, 
+             aes(x = SampleType, y = TotalSpores_corrected.m3, color = "Raw Data"), 
+             position = position_jitter(width = 0.15), 
+             alpha = 0.5, size = 1) +
   geom_violin(data = Konza4_spores_pa_C, 
               aes(x = SampleType, y = TotalSpores_corrected.m3), 
-              fill = NA, color = "black", width = 0.8, alpha = 0.5) +
-  geom_col(fill = "#0072B2", alpha = 0.6) +
+              fill = NA, color = "gold3", width = 0.8) +
   geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper), 
-                width = 0.2, color = "black", linewidth = 1.1) +
-  labs(x = "Sample Type", 
-       y = expression(Spores~m^{-3}),
-       title = "Smoke vs. Ambient Tallgrass Prairie Fungal Spores") +
-  theme_bw() +
-  theme(text = element_text(size = 10),
-        plot.title = element_text(hjust = 0.5, face = "bold"),
-        axis.text.x = element_text(angle = 0, hjust = 0.5)) +
-  geom_segment(data = sig_bars, 
+                width = 0.2, color = "blue2", alpha = 0.6, linewidth = 0.8) +
+  geom_point(aes(y = Spores.m3, color = "Model Output"), size = 1.5) +
+  geom_segment(data = K4_sig_bars, 
                aes(x = x, xend = xend, y = y, yend = y),
-               linewidth = 0.5) +
-  geom_segment(data = sig_bars,
-               aes(x = x, xend = x, y = y, yend = y - max_height * 0.05),
-               linewidth = 0.5) +
-  geom_segment(data = sig_bars,
-               aes(x = xend, xend = xend, y = y, yend = y - max_height * 0.05),
-               linewidth = 0.5) +
-  geom_text(data = sig_bars,
-            aes(x = (x + xend) / 2, y = y + max_height * 0.02, label = annotation),
-            size = 3.2, vjust = 0, parse = TRUE) +
-    geom_point(aes(y = Spores.m3), color = "darkred", size = 3) +
-  # Add dashed line from point to label
+               linewidth = 0.5, color = "blue2") +
+  geom_segment(data = K4_sig_bars,
+               aes(x = x, xend = x, y = y, yend = y - K4_max_height * 0.09),
+               linewidth = 0.5, color = "blue2") +
+  geom_segment(data = K4_sig_bars,
+               aes(x = xend, xend = xend, y = y, yend = y - K4_max_height * 0.09),
+               linewidth = 0.5, color = "blue2") +
+  geom_text(data = K4_sig_bars,
+            aes(x = (x + xend) / 2, y = y + K4_max_height * 0.02, label = annotation),
+            size = 2, vjust = 0, parse = TRUE) +
   geom_segment(aes(x = as.numeric(SampleType), 
                    xend = as.numeric(SampleType) + 0.2,  
                    y = Spores.m3, 
-                   yend = Spores.m3 + 50000),  # Angle upward
-               linetype = "dashed", color = "black", linewidth = 0.7) +
-  # Add lambda-hat labels
-  geom_label(data = spore_cat, 
+                   yend = Spores.m3 + 60000),  
+               linetype = "dashed", color = "black", linewidth = 0.5) +
+  geom_label(data = K4_spore_cat, 
             aes(label = paste0("hat(mu) == ", 
                               round(Spores.m3/10^floor(log10(Spores.m3)), 2), 
                               " %*% 10^", floor(log10(Spores.m3))),
                 x = as.numeric(SampleType) + 0.2,  
-                y = Spores.m3 + 50000),
-            hjust = 0, size = 3, parse = TRUE,
-            fill = "white", color = "black", 
+                y = Spores.m3 + 60000),
+            hjust = 0, size = 2, parse = TRUE,
+            fill = "white", color = "black", alpha = 0.3, 
             label.padding = unit(0.25, "lines"),
             label.r = unit(0.15, "lines")) +
-  coord_cartesian(ylim = c(0, max(Konza4_spores_pa_C$TotalSpores_corrected.m3 * 0.5)))
+  scale_color_manual(values = c("Model Output" = "blue2", "Raw Data" = "gold3")) +
+  guides(color = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) +
+  scale_y_continuous(labels = scales::scientific, 
+                   limits = c(0, max(Konza4_spores_pa_C$TotalSpores_corrected.m3 * 0.5))) +
+  labs(x = "Sample Type", 
+       y = expression("Tallgrass prairie: spores"~m^{-3}),
+       color = "") +
+  theme_bw() +
+  theme(text = element_text(size = 10),
+        axis.text.x = element_text(angle = 0, hjust = 0.5),
+        panel.grid = element_blank(),
+        legend.position = c(0.02, 0.98),
+        legend.justification = c(0, 1),
+        legend.key = element_rect(fill = "white", color = NA)) 
 
-print(p1)
+print(k4_spore_plt)
 
-ggsave('Output/Output_figs/K4/K4_SmokeVsAmbient_SporeModel.png', p1, dpi = 600, width = 5, height = 4, units = "in")
+ggsave('Output/Output_figs/K4/K4_SmokeVsAmbient_SporeModel.png', k4_spore_plt, dpi = 600, width = 5, height = 4, units = "in")
+
 
 ```
 
@@ -649,6 +653,131 @@ print(smoke_summary)
 # [7] Modeling for Research Question #1: FASMEE23 spore abundance in ambient vs. smoke conditions
 
 ## [7.1] GLMM model for FASMEE23 spores and DHARMa diagnostics for assessment
+```{r FASMEE23 spore ambient vs smoke}
+FASMEE23_SporeCatModel <- glmmTMB(TotalSpores ~ SampleType + offset(log(RepVolume_L)) + 
+                          (1|Platform:SampleID) + (1|LB_Batch),
+                        family=nbinom2(link="log"), data = FASMEE23_spores_pa_C, 
+                        ziformula = ~-1, dispformula = ~ (1|Platform:SampleID))
+summary(FASMEE23_SporeCatModel)
+
+# DHARMa diagnostics
+res <- simulateResiduals(fittedModel = FASMEE23_SporeCatModel, plot = FALSE)
+plotQQunif(res)
+testCategorical(res, catPred = FASMEE23_spores_pa_C$SampleType) # Residuals by group
+plotResiduals(res)
+testZeroInflation(res)
+simOutput_cond <- simulateResiduals(FASMEE23_SporeCatModel, re.form = NULL)
+testDispersion(simOutput_cond) 
+
+print(drop1(FASMEE23_SporeCatModel, test = "Chisq"))
+
+# Calculate marginal means and contrasts
+emm_log <- emmeans(FASMEE23_SporeCatModel, ~ SampleType)
+emm_response <- emmeans(FASMEE23_SporeCatModel, ~ SampleType, type = "response")
+F23_rate_ratios <- pairs(emm_response, reverse = T)
+
+# Create prediction dataframe
+F23_spore_cat <- as.data.frame(emm_response) %>% 
+  mutate(
+    Spores.m3 = (response*7225)/0.03,
+    CI_lower = (asymp.LCL * 7225) / 0.03,
+    CI_upper = (asymp.UCL * 7225) / 0.03
+  )
+
+print(F23_spore_cat)
+
+print(summary(F23_rate_ratios, infer = T))
+
+```
+
+```{r, FASMEE23 Spores Smoke Vs Ambient Plot}
+
+# Create significance bars
+F23_spores_contrast_df <- as.data.frame(F23_rate_ratios)
+F23_spores_sig_bars <- data.frame(
+  x = c(1),
+  xend = c(2),
+  pair = c("Smoke / Ambient"),
+  stringsAsFactors = FALSE
+)
+
+F23_spores_sig_bars$p_value <- sapply(F23_spores_sig_bars$pair, function(pair) {
+  idx <- which(F23_spores_contrast_df$contrast == pair)
+  if(length(idx) > 0) {
+    return(F23_spores_contrast_df$p.value[idx])
+  } else {
+    return(1.0) 
+  }
+})
+
+F23_spores_max_height <- max(F23_spore_cat$CI_upper, na.rm = TRUE)
+F23_spores_sig_bars$y <- F23_spores_max_height * c(3.5)
+F23_spores_sig_bars$annotation <- ifelse(
+  is.na(F23_spores_sig_bars$p_value),
+  'plain("")',
+  paste0("italic(p) ==", signif(F23_spores_sig_bars$p_value, 2))
+)
+
+F23_spore_plt <- ggplot(F23_spore_cat, aes(x = SampleType, y = Spores.m3)) + 
+  geom_point(data = FASMEE23_spores_pa_C, 
+             aes(x = SampleType, y = TotalSpores_corrected.m3, color = "Raw Data"), 
+             position = position_jitter(width = 0.15), 
+             alpha = 0.5, size = 1) +
+  geom_violin(data = FASMEE23_spores_pa_C, 
+              aes(x = SampleType, y = TotalSpores_corrected.m3), 
+              fill = NA, color = "gold3", width = 0.8) +
+  geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper), 
+                width = 0.2, color = "blue2", alpha = 0.6, linewidth = 0.8) +
+  geom_point(aes(y = Spores.m3, color = "Model Output"), size = 1.5) +
+  geom_segment(data = F23_spores_sig_bars, 
+               aes(x = x, xend = xend, y = y, yend = y),
+               linewidth = 0.5, color = "blue2") +
+  geom_segment(data = F23_spores_sig_bars,
+               aes(x = x, xend = x, y = y, yend = y - F23_spores_max_height * 0.09),
+               linewidth = 0.5, color = "blue2") +
+  geom_segment(data = F23_spores_sig_bars,
+               aes(x = xend, xend = xend, y = y, yend = y - F23_spores_max_height * 0.09),
+               linewidth = 0.5, color = "blue2") +
+  geom_text(data = F23_spores_sig_bars,
+            aes(x = (x + xend) / 2, y = y + F23_spores_max_height * 0.02, label = annotation),
+            size = 2, vjust = 0, parse = TRUE) +
+  geom_segment(aes(x = as.numeric(SampleType), 
+                   xend = as.numeric(SampleType) + 0.18,  
+                   y = Spores.m3, 
+                   yend = Spores.m3 + 120000),  
+               linetype = "dashed", color = "black", linewidth = 0.5) +
+  geom_label(data = F23_spore_cat, 
+            aes(label = paste0("hat(mu) == ", 
+                              round(Spores.m3/10^floor(log10(Spores.m3)), 2), 
+                              " %*% 10^", floor(log10(Spores.m3))),
+                x = as.numeric(SampleType) + 0.18,  
+                y = Spores.m3 + 120000),
+            hjust = 0, size = 2, parse = TRUE,
+            fill = "white", color = "black", alpha = 0.3, 
+            label.padding = unit(0.25, "lines"),
+            label.r = unit(0.15, "lines")) +
+  scale_color_manual(values = c("Model Output" = "blue2", "Raw Data" = "gold3")) +
+  guides(color = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) +
+  scale_y_continuous(labels = scales::scientific, 
+                     limits = c(0, max(FASMEE23_spores_pa_C$TotalSpores_corrected.m3 * 0.45))) +
+  labs(x = "Sample Type", 
+       y = expression("Subalpine forest: spores"~m^{-3}),
+       color = "") +
+  theme_bw() +
+  theme(text = element_text(size = 10),
+        axis.text.x = element_text(angle = 0, hjust = 0.5),
+        panel.grid = element_blank(),
+        legend.position = c(0.02, 0.98),
+        legend.justification = c(0, 1),
+        legend.key = element_rect(fill = "white", color = NA)) 
+
+print(F23_spore_plt)
+
+ggsave('Output/Output_figs/FASMEE23/F23_SmokeVsAmbient_SporeModel.png', F23_spore_plt, dpi = 600, width = 5, height = 4, units = "in")
+
+
+```
+
 ```{r FASMEE23 spore smoke level GLMM}
 FASMEE23_SporeCatModel <- glmmTMB(TotalSpores ~ SmokeLevel + offset(log(RepVolume_L)) + 
                           (1|Platform:SampleID) + (1|LB_Batch),
@@ -1017,7 +1146,7 @@ print(drop1(FASMEE23_BacteriaCatModel, test = "Chisq"))
 # Calculate marginal means and contrasts
 emm_log <- emmeans(FASMEE23_BacteriaCatModel, ~ SampleType)
 emm_response <- emmeans(FASMEE23_BacteriaCatModel, ~ SampleType, type = "response")
-rate_ratios_vs_none <- pairs(emm_response, reverse = T)
+F23_bact_rate_ratios <- pairs(emm_response, reverse = T)
 
 # Create prediction dataframe
 bacteria_cat <- as.data.frame(emm_response) %>% 
@@ -1037,87 +1166,136 @@ print(bacteria_cat)
 
 ## [8.3] Ratios from FASMEE23 bacteria GLMM model
 ```{r FASMEE23 bacteria contrast-results, echo=FALSE}
-print(summary(rate_ratios_vs_none, infer = T))
+print(summary(F23_bact_rate_ratios, infer = T))
 ```
 
 ## [8.4] Plotting FASMEE23 bacteria model results with raw data as points/violin plots
 ```{r FASMEE23 bacteria Plotting model results, fig.cap="FASMEE23 Bacteria GLMM predictions and raw data by smoke level with significance bars"}
 
 # Create significance bars
-contrast_df <- as.data.frame(rate_ratios_vs_none)
-sig_bars <- data.frame(
+F23_bacteria_contrast <- as.data.frame(F23_bact_rate_ratios)
+F23_bacteria_sig_bars <- data.frame(
   x = c(1),
   xend = c(2),
   pair = c("Smoke / Ambient"),
   stringsAsFactors = FALSE
 )
 
-sig_bars$p_value <- sapply(sig_bars$pair, function(pair) {
-  idx <- which(contrast_df$contrast == pair)
+F23_bacteria_sig_bars$p_value <- sapply(F23_bacteria_sig_bars$pair, function(pair) {
+  idx <- which(F23_bacteria_contrast$contrast == pair)
   if(length(idx) > 0) {
-    return(contrast_df$p.value[idx])
+    return(F23_bacteria_contrast$p.value[idx])
   } else {
     return(1.0) 
   }
 })
 
-max_height <- max(bacteria_cat$CI_upper, na.rm = TRUE)
-sig_bars$y <- max_height * c(3.1)
-sig_bars$annotation <- ifelse(
-  is.na(sig_bars$p_value),
+F23_bacteria_max_height <- max(bacteria_cat$CI_upper, na.rm = TRUE)
+F23_bacteria_sig_bars$y <- F23_bacteria_max_height  * c(5.5)
+F23_bacteria_sig_bars$annotation <- ifelse(
+  is.na(F23_bacteria_sig_bars$p_value),
   'plain("")',
-  paste0("italic(p)==", signif(sig_bars$p_value, 2))
+  paste0("italic(p)==", signif(F23_bacteria_sig_bars$p_value, 2))
 )
 
 
-p1 <- ggplot(bacteria_cat, aes(x = SampleType, y = Bacteria.m3)) +
-    geom_point(data = bacteria, 
-             aes(x = SampleType, y = TotalCells_corrected.m3), 
-             position = position_jitter(width = 0.1), 
-             alpha = 0.5, size = 2, color = "#0072B2") +
+F23_bacteria_plt <- ggplot(bacteria_cat, aes(x = SampleType, y = Bacteria.m3)) + 
+  geom_point(data = bacteria, 
+             aes(x = SampleType, y = TotalCells_corrected.m3, color = "Raw Data"), 
+             position = position_jitter(width = 0.15), 
+             alpha = 0.3, size = 1) +
   geom_violin(data = bacteria, 
-              aes(x = SampleType, y = TotalCells_corrected.m3), 
-              fill = NA, color = "black", width = 0.8, alpha = 0.5) +
-  geom_col(fill = "#0072B2", alpha = 0.6) +
+            aes(x = SampleType, y = TotalCells_corrected.m3), 
+            fill = NA, color = "gold3", width = 0.8) +  
   geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper), 
-                width = 0.2, color = "black", linewidth = 1.1) +
-  labs(x = "Sample Type",
-       y = expression(Bacteria~m^{-3}),
-       title = "Smoke vs. Ambient Subalpine Forest Bacteria") +
+                width = 0.2, color = "blue2", alpha = 0.6, linewidth = 0.8) +
+  geom_point(aes(y = Bacteria.m3, color = "Model Output"), size = 1.5) +
+  geom_segment(data = F23_bacteria_sig_bars, 
+               aes(x = x, xend = xend, y = y, yend = y),
+               linewidth = 0.5, color = "blue2") +
+  geom_segment(data = F23_bacteria_sig_bars,
+               aes(x = x, xend = x, y = y, yend = y - F23_bacteria_max_height  * 0.09),
+               linewidth = 0.5, color = "blue2") +
+  geom_segment(data = F23_bacteria_sig_bars,
+               aes(x = xend, xend = xend, y = y, yend = y - F23_bacteria_max_height  * 0.09),
+               linewidth = 0.5, color = "blue2") +
+  geom_text(data = F23_bacteria_sig_bars,
+            aes(x = (x + xend) / 2, y = y + F23_bacteria_max_height * 0.02, label = annotation),
+            size = 2, vjust = 0, parse = TRUE) +
+  geom_segment(aes(x = as.numeric(SampleType), 
+                   xend = as.numeric(SampleType) + 0.2,  
+                   y = Bacteria.m3, 
+                   yend = Bacteria.m3 + 600000),  
+               linetype = "dashed", color = "black", linewidth = 0.5) +
+  geom_label(data = bacteria_cat, 
+            aes(label = paste0("hat(mu) == ", 
+                              round(Bacteria.m3/10^floor(log10(Bacteria.m3)), 2), 
+                              " %*% 10^", floor(log10(Bacteria.m3))),
+                x = as.numeric(SampleType) + 0.2,  
+                y = Bacteria.m3 + 600000),
+            hjust = 0, size = 2, parse = TRUE,
+            fill = "white", color = "black", alpha = 0.3,
+            label.padding = unit(0.25, "lines"),
+            label.r = unit(0.15, "lines")) +
+  scale_color_manual(values = c("Model Output" = "blue2", "Raw Data" = "gold3")) +
+  guides(color = guide_legend(override.aes = list(shape = 15, size = 4, alpha = 1))) +
+  labs(x = "Sample Type", 
+       y = expression("Subalpine forest: bacteria"~m^{-3}),
+       color = "") +
   theme_bw() +
   theme(text = element_text(size = 10),
-        plot.title = element_text(hjust = 0.5, face = "bold"),
-        axis.text.x = element_text(angle = 0, hjust = 0.5)) +
-  geom_segment(data = sig_bars, 
-               aes(x = x, xend = xend, y = y, yend = y),
-               linewidth = 0.5) +
-  geom_segment(data = sig_bars,
-               aes(x = x, xend = x, y = y, yend = y - max_height * 0.05),
-               linewidth = 0.5) +
-  geom_segment(data = sig_bars,
-               aes(x = xend, xend = xend, y = y, yend = y - max_height * 0.05),
-               linewidth = 0.5) +
-  geom_text(data = sig_bars,
-            aes(x = (x + xend) / 2, y = y + max_height * 0.02, label = annotation),
-            size = 3.2, vjust = 0, parse = TRUE) +
-  scale_x_discrete(labels = c("Ambient", "Smoke")) +
-  coord_cartesian(ylim = c(0, max(bacteria$TotalCells_corrected.m3 * 0.2)))
+        axis.text.x = element_text(angle = 0, hjust = 0.5),
+        panel.grid = element_blank(),
+        legend.position = c(0.02, 0.98),
+        legend.justification = c(0, 1),
+        legend.key = element_rect(fill = "white", color = NA)) +
+  coord_cartesian(ylim = c(0, max(bacteria$TotalCells_corrected.m3 * 0.4)))
 
-print(p1)
+print(F23_bacteria_plt)
+
+ggsave('Output/Output_figs/FASMEE23/F23_SmokeVsAmbient_BacteriaModel.png', F23_bacteria_plt, dpi = 600, width = 5, height = 4, units = "in")
+
 ```
+
+```{r, plotting for manuscript}
+
+F23_spore_plt <- F23_spore_plt +
+  labs(x = element_blank()) +
+  theme(legend.position = "none")
+
+
+k4_spore_plt <- k4_spore_plt +
+  labs(x = element_blank()) 
+
+F23_bacteria_plt <- F23_bacteria_plt +
+  theme(legend.position = "none")
+
+K4_F23_amb_vs_smoke <- (k4_spore_plt / F23_spore_plt / F23_bacteria_plt)
+
+print(K4_F23_amb_vs_smoke)
+
+ggsave('Output/Output_figs/K4_F23_SmokeVsAmbient_Models.png', K4_F23_amb_vs_smoke, dpi = 600, width = 4, height = 9, units = "in")
+```
+
 
 # [9] Modeling for research question #3: FASMEE23 live bacteria ratio in ambient vs. smoke conditions
 ```{r FASMEE23 Live bacteria ratio}
-FASMEE23_LiveRatioModel <- glmmTMB(cbind(LIVECounts, TotalCells - LIVECounts) ~ SampleType +
-                          (1|Platform:SampleID) + (1|LB_Batch),
+blueF23 <- bacteria %>%
+  filter(
+    Platform != "Red"
+  )
+
+FASMEE23_LiveRatioModel <- glmmTMB(cbind(LIVECounts, TotalCells - LIVECounts) ~ SampleType + MeanMR +
+                          (1|SampleID) + (1|LB_Batch),
                           family = betabinomial(link = "logit"), 
-                          data = bacteria, dispformula = ~ SampleType + (1|Platform:SampleID))
+                          data = blueF23, dispformula = ~ MeanMR + MedianPM2.5_ug.m3 + (1|SampleID))
 summary(FASMEE23_LiveRatioModel)
 
 res <- simulateResiduals(fittedModel = FASMEE23_LiveRatioModel, plot = FALSE)
 plotQQunif(res)
-testCategorical(res, catPred = bacteria$SampleType) # Residuals by group
+testCategorical(res, catPred = blueF23$SampleType) # Residuals by group
 plotResiduals(res)
+plotResiduals(res, blueF23$MeanMR)
 testZeroInflation(res)
 simOutput_cond <- simulateResiduals(FASMEE23_LiveRatioModel, re.form = NULL)
 testDispersion(simOutput_cond) 
@@ -1283,7 +1461,8 @@ testDispersion(simOutput_cond)
 fasmee23_k4_spores <- bind_rows(Konza4_spores_pa_C, FASMEE23_spores_pa_C) %>%
   mutate(
     Project_SampleType = paste(Project, SampleType, sep = "_"),
-    Project_SampleType = factor(Project_SampleType, levels = c("Konza4_Ambient", "Konza4_Smoke", "FASMEE23_Ambient", "FASMEE23_Smoke"))
+    Project_SampleType = factor(Project_SampleType, levels = c("Konza4_Ambient", "Konza4_Smoke", "FASMEE23_Ambient", "FASMEE23_Smoke")),
+    Project_platform = if_else(Project == "FASMEE23", paste0(Project, "_", Platform), paste0("Konza4", "_", "Blue"))
     ) 
 
 ```
@@ -1330,9 +1509,9 @@ print(p1)
 ```{r Konza4 and FASMEE23 site comparison GLMM}
 
 fasmee23_k4_spores_model <- glmmTMB(TotalSpores ~ Project_SampleType + offset(log(RepVolume_L)) + 
-                                    (1|SampleID) + (1|LB_Batch),
+                                    (1|Project_platform:SampleID) + (1|LB_Batch),
                                   family=nbinom2(link="log"), data = fasmee23_k4_spores, 
-                                  ziformula = ~-1, dispformula = ~(1|SampleID))
+                                  dispformula = ~(1|Project_platform:SampleID))
 summary(fasmee23_k4_spores_model)
 
 res <- simulateResiduals(fittedModel = fasmee23_k4_spores_model, plot = F)
@@ -1450,6 +1629,10 @@ p1 <- ggplot(site_comparison_cat, aes(x = Project_SampleType, y = Spores.m3)) +
 
 print(p1)
 ```
+
+- The story is the difference between smoke and ambient and different smoke levels, difference between sites, and a little bit on environmental and PM predictors for Konza spores
+- For plots to show this story: Ambient Vs. Smoke plots x3; K4 environmental predictors, EFs
+
 
 # [15] Emission Factors
 
