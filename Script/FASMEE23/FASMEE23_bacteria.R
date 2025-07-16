@@ -127,8 +127,11 @@ Ambient_mean <- bacteria %>%
   summarise( # Ambient mean for background correction
     AmbientTotalCells.FOV = mean(TotalCells_FBLBcorr),
     AmbientLiveCells.FOV = mean(LiveCells_FBLBcorr),
-    AmbientDeadCells.FOV = mean(DeadCells_FBLBcorr)
-  )
+    AmbientDeadCells.FOV = mean(DeadCells_FBLBcorr),
+    
+    AmbientTotalCells.m3 = mean((TotalCells_FBLBcorr*FOV1000x.filter)/RepVolume_m3),
+    AmbientLiveCells.m3 = mean((LiveCells_FBLBcorr*FOV1000x.filter)/RepVolume_m3),
+    AmbientDeadCells.m3 = mean((DeadCells_FBLBcorr*FOV1000x.filter)/RepVolume_m3))
 
 bacteria <- bacteria %>%
   mutate(
@@ -142,13 +145,9 @@ bacteria <- bacteria %>%
     
     Live.Total_FBLBcorr = if_else(TotalCells_FBLBcorr.m3 > 0, LiveCells_FBLBcorr.m3/TotalCells_FBLBcorr.m3, NA),
     
-    LiveCells_Bcorr = if_else(SampleType == "Smoke", pmax(0, LiveCells_FBLBcorr - Ambient_mean$AmbientLiveCells.FOV), NA),
-    DeadCells_Bcorr = if_else(SampleType == "Smoke", pmax(0, DeadCells_FBLBcorr - Ambient_mean$AmbientDeadCells.FOV), NA),
-    TotalCells_Bcorr = if_else(SampleType == "Smoke", LiveCells_Bcorr + DeadCells_Bcorr, NA),
-    
-    TotalCells_Bcorr.m3 = (TotalCells_Bcorr*FOV1000x.filter)/RepVolume_m3,
-    DeadCells_Bcorr.m3 = (DeadCells_Bcorr*FOV1000x.filter)/RepVolume_m3,
-    LiveCells_Bcorr.m3 = (LiveCells_Bcorr*FOV1000x.filter)/RepVolume_m3,
+    LiveCells_Bcorr.m3 = if_else(SampleType == "Smoke", pmax(0, LiveCells_FBLBcorr.m3 - Ambient_mean$AmbientLiveCells.m3), NA),
+    DeadCells_Bcorr.m3 = if_else(SampleType == "Smoke", pmax(0, DeadCells_FBLBcorr.m3 - Ambient_mean$AmbientDeadCells.m3), NA),
+    TotalCells_Bcorr.m3 = if_else(SampleType == "Smoke", LiveCells_Bcorr.m3 + DeadCells_Bcorr.m3, NA),
     
     Live.Total_Bcorr = if_else(TotalCells_Bcorr.m3 > 0, LiveCells_Bcorr.m3/TotalCells_Bcorr.m3, NA)
   )
@@ -171,7 +170,7 @@ bacteria_pa_C <- left_join(bacteria_pa, slim_fasmmee_C, by = c('Sample_num' = 'S
     Live_bacteria.mg = LiveCells_Bcorr.m3/biomass_mg
   )
 
-#write.csv(bacteria_pa_C, './Output/Output_data/FASMEE23/FASMEE23_Bacteria_PA_C.csv', row.names = F)
+write.csv(bacteria_pa_C, './Output/Output_data/FASMEE23/FASMEE23_Bacteria_PA_C.csv', row.names = F)
 
 na_count <- bacteria_pa_C %>%
   summarize(across(everything(), ~sum(is.na(.))))
