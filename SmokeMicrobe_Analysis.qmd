@@ -127,12 +127,43 @@ Konza4_spores_pa_C <- K4_spores_raw %>%
   ) %>%
   filter(SampleID != "14A")
 
-K4_UAS <- read_csv('./Output/Output_data/K4/K4_FlightsAGL.csv') %>%
+K4_UAS <- read_csv('./Output/Output_data/K4/K4_FlightsAGL.csv') %>%  
+  mutate(
+    datetime.utc. = ymd_hms(datetime.utc., tz = ('UTC'))
+  ) %>%
+  group_by(Sample) %>%
+  arrange(datetime.utc., .by_group = TRUE) %>%
+  mutate(
+    min_time = min(datetime.utc.),
+    max_time = max(datetime.utc.)
+  ) %>%
+  filter( # filtering flights to times two minutes after take-off and two minutes before landing
+    datetime.utc. >= min_time + minutes(2),
+    datetime.utc. <= max_time - minutes(2)
+  )
+
+K4_UAS_samples <- K4_UAS %>%
   group_by(Sample) %>%
   summarise(
-    MeanAGL = mean(AGL_m))
+    MinAGL = min(AGL_m),
+    MeanAGL = mean(AGL_m),
+    MedianAGL = median(AGL_m),
+    MaxAGL = max(AGL_m)
+    )
 
-Konza4_spores_pa_C <- left_join(Konza4_spores_pa_C, K4_UAS, by = "Sample")
+Konza4_spores_pa_C <- left_join(Konza4_spores_pa_C, K4_UAS_samples, by = "Sample")
+
+# Konza4 Bacteria
+K4_bacteria <- read_csv('./Output/Output_data/K4/k4_Bacteria_PA_C.csv') %>%
+  select(Project, SampleID, Sample = Sample_num, TotalCells, LIVECounts, RepVolume_m3, SmokeLevel, LB_Batch, Day,
+         MeanMR, MedianPM2.5_ug.m3, MeanTemp_C, MeanRH, TotalCells_corrected.m3 = TotalCells_FBLBcorr.m3, 
+         SampleType, MeanMCE) %>%
+  filter(SampleType != "FieldBlank" & SampleType != "LabBlank") %>%
+  mutate(
+    Sample = as.numeric(Sample)
+  )
+
+K4_bacteria <- left_join(K4_bacteria, K4_UAS_samples, by = "Sample")
 
 # FASMEE23 Spores
 FASMEE23_spores_raw <- read.csv('./Output/Output_data/FASMEE23/FASMEE23_Spores_PA_C.csv') 
@@ -151,11 +182,38 @@ FASMEE23_spores_pa_C <- FASMEE23_spores_raw %>%
     SmokeLevel = factor(SmokeLevel, levels = c("None", "Low", "High"))
   )
 
+F23_BlueUAS <- read_csv('./Output/Output_data/FASMEE23/FASMEE23_FlightsAGL.csv') %>%  
+  mutate(
+    datetime.utc. = ymd_hms(datetime.utc., tz = ('UTC'))
+  ) %>%
+  group_by(Sample) %>%
+  arrange(datetime.utc., .by_group = TRUE) %>%
+  mutate(
+    min_time = min(datetime.utc.),
+    max_time = max(datetime.utc.)
+  ) %>%
+  filter( # filtering flights to times two minutes after take-off and two minutes before landing
+    datetime.utc. >= min_time + minutes(2),
+    datetime.utc. <= max_time - minutes(2)
+  )
+
+F23_BlueUAS_samples <- F23_BlueUAS %>%
+  group_by(SampleID_short) %>%
+  summarise(
+    MinAGL = min(AGL_m),
+    MeanAGL = mean(AGL_m),
+    MedianAGL = median(AGL_m),
+    MaxAGL = max(AGL_m)
+    )
+
+F23_BlueSpores <- FASMEE23_spores_pa_C %>%
+  filter(Platform == "Blue") %>%
+  left_join(., F23_BlueUAS_samples, by = "SampleID_short")
+
 # FASMEE23 Bacteria
 FASMEE23_bacteria_raw <- read_csv('./Output/Output_data/FASMEE23/FASMEE23_Bacteria_PA_C.csv') 
-bacteria <- FASMEE23_bacteria_raw %>%
-  select(Project, SampleID, TotalCells, LIVECounts, RepVolume_L, SmokeLevel, LB_Batch, Day,
-         MeanMR, MedianPM2.5_ug.m3, MeanTemp_C, MeanRH, TotalCells_corrected.m3 = TotalCells_FBLBcorr.m3, 
+F23_bacteria <- FASMEE23_bacteria_raw %>%
+  select(Project, SampleID, SampleID_short = Sample, TotalCells, LIVECounts, RepVolume_L, SmokeLevel, LB_Batch, Day, MeanMR, MedianPM2.5_ug.m3, MeanTemp_C, MeanRH, TotalCells_corrected.m3 = TotalCells_FBLBcorr.m3, 
          SampleType, Platform, ALL_carbon_mg.m3 = Gas_TC_Carbon_mg.m3, MeanMCE) %>%
   filter(SampleType != "FieldBlank" & SampleType != "LabBlank") %>%
   filter(Platform == "Blue" | (Platform == "Red" & SampleType == "Ambient")) %>%
@@ -169,21 +227,22 @@ bacteria <- FASMEE23_bacteria_raw %>%
     LiveRatio = LIVECounts / TotalCells
   )
 
+F23_BlueBacteria  <- F23_bacteria %>%
+  filter(Platform == "Blue") %>%
+  left_join(., F23_BlueUAS_samples, by = "SampleID_short")
+
 # FASMEE23 qPCR
 F23_qPCR <- read_csv('./Output/Output_data/FASMEE23/FASMEE23_qPCR_SampleInfo.csv') %>%
   select(-Platform, -SampleID)
 
-# Konza4 Bacteria
-K4_bacteria_raw <- read_csv('./Output/Output_data/K4/k4_Bacteria_PA_C.csv')
-Konza4_bacteria <- K4_bacteria_raw
-
+# Smoke only samples
 Konza4_smoke_spores <- Konza4_spores_pa_C %>%
   filter(SampleType == "Smoke")
 
 FASMEE23_smoke_spores <- FASMEE23_spores_pa_C %>%
   filter(SampleType == "Smoke" & Platform == "Blue")
 
-FASMEE23_smoke_bacteria <- bacteria %>%
+FASMEE23_smoke_bacteria <- F23_bacteria %>%
   filter(SampleType == "Smoke" & Platform == "Blue")
 
 ```
@@ -965,11 +1024,11 @@ ggsave('Output/Output_figs/FASMEE23/FASMEE23_SmokeLevels_SporeModel.png', p2, dp
 
 # Tidy data summary
 cat("=== FASMEE23 Bacteria Data Summary ===\n")
-cat("Dataset dimensions:", nrow(bacteria), "rows ×", ncol(bacteria), "columns\n\n")
+cat("Dataset dimensions:", nrow(F23_bacteria), "rows ×", ncol(F23_bacteria), "columns\n\n")
 
 # Sample counts by smoke level
 cat("Sample counts by smoke level:\n")
-smoke_counts <- table(bacteria$SmokeLevel)
+smoke_counts <- table(F23_bacteria$SmokeLevel)
 print(smoke_counts)
 cat("\n")
 
@@ -981,14 +1040,14 @@ key_vars <- c("TotalCells", "LIVECounts", "TotalCells_corrected.m3", "LiveRatio"
 # Create summary statistics 
 summary_stats <- data.frame(
   Variable = key_vars,
-  n = sapply(bacteria[key_vars], function(x) sum(!is.na(x))),
-  Mean = sapply(bacteria[key_vars], function(x) round(mean(x, na.rm = TRUE), 1)),
-  SD = sapply(bacteria[key_vars], function(x) round(sd(x, na.rm = TRUE), 1)),
-  Min = sapply(bacteria[key_vars], function(x) round(min(x, na.rm = TRUE), 1)),
-  Q25 = sapply(bacteria[key_vars], function(x) round(quantile(x, 0.25, na.rm = TRUE), 1)),
-  Median = sapply(bacteria[key_vars], function(x) round(median(x, na.rm = TRUE), 1)),
-  Q75 = sapply(bacteria[key_vars], function(x) round(quantile(x, 0.75, na.rm = TRUE), 1)),
-  Max = sapply(bacteria[key_vars], function(x) round(max(x, na.rm = TRUE), 1))
+  n = sapply(F23_bacteria[key_vars], function(x) sum(!is.na(x))),
+  Mean = sapply(F23_bacteria[key_vars], function(x) round(mean(x, na.rm = TRUE), 1)),
+  SD = sapply(F23_bacteria[key_vars], function(x) round(sd(x, na.rm = TRUE), 1)),
+  Min = sapply(F23_bacteria[key_vars], function(x) round(min(x, na.rm = TRUE), 1)),
+  Q25 = sapply(F23_bacteria[key_vars], function(x) round(quantile(x, 0.25, na.rm = TRUE), 1)),
+  Median = sapply(F23_bacteria[key_vars], function(x) round(median(x, na.rm = TRUE), 1)),
+  Q75 = sapply(F23_bacteria[key_vars], function(x) round(quantile(x, 0.75, na.rm = TRUE), 1)),
+  Max = sapply(F23_bacteria[key_vars], function(x) round(max(x, na.rm = TRUE), 1))
 )
 
 print(summary_stats, row.names = FALSE)
@@ -996,27 +1055,27 @@ cat("\n")
 
 # Additional metadata
 cat("Additional metadata:\n")
-cat("- Number of unique SampleIDs:", n_distinct(bacteria$SampleID), "\n")
-cat("- Smoke intensity:", paste(unique(bacteria$SmokeLevel), collapse = ", "), "\n")
-cat("- Number of unique Days:", n_distinct(bacteria$Day), "\n")
-cat("- Number of LB_Batch groups:", n_distinct(bacteria$LB_Batch), "\n")
-cat("- Sample types:", paste(unique(bacteria$SampleType), collapse = ", "), "\n")
-cat("- Platforms:", paste(unique(bacteria$Platform), collapse = ", "), "\n")
+cat("- Number of unique SampleIDs:", n_distinct(F23_bacteria$SampleID), "\n")
+cat("- Smoke intensity:", paste(unique(F23_bacteria$SmokeLevel), collapse = ", "), "\n")
+cat("- Number of unique Days:", n_distinct(F23_bacteria$Day), "\n")
+cat("- Number of LB_Batch groups:", n_distinct(F23_bacteria$LB_Batch), "\n")
+cat("- Sample types:", paste(unique(F23_bacteria$SampleType), collapse = ", "), "\n")
+cat("- Platforms:", paste(unique(F23_bacteria$Platform), collapse = ", "), "\n")
 
 # Data Distribution Plots
 cat("\n=== Data Distribution Plots ===\n")
 
 # Create plots for each variable
-p1 <- create_hist_density(bacteria, "TotalCells", "Total Bacteria Distribution", "Total Bacteria")
-p2 <- create_hist_density(bacteria, "LIVECounts", "Live Bacteria Distribution", "Live Bacteria")
-p3 <- create_hist_density(bacteria, "TotalCells_corrected.m3", "Bacteria Concentration Distribution", "Bacteria concentration (cells/m³)")
-p4 <- create_hist_density(bacteria, "LiveRatio", "Live Bacteria Ratio Distribution", "Live Bacteria Ratio")
-p5 <- create_hist_density(bacteria, "MedianPM2.5_ug.m3", "PM2.5 Distribution", "PM2.5 (μg/m³)")
-p6 <- create_hist_density(bacteria, "MeanTemp_C", "Temperature Distribution", "Temperature (°C)")
-p7 <- create_hist_density(bacteria, "MeanRH", "Relative Humidity Distribution", "Relative Humidity (%)")
-p8 <- create_hist_density(bacteria, "MeanMR", "Moisture Ratio Distribution", "Moisture Ratio")
-p9 <- create_hist_density(bacteria, "ALL_carbon_mg.m3", "Carbon Distribution", "Carbon (mg/m³)")
-p10 <- create_hist_density(bacteria, "MeanMCE", "MCE Distribution", "Modified Combustion Efficiency")
+p1 <- create_hist_density(F23_bacteria, "TotalCells", "Total Bacteria Distribution", "Total Bacteria")
+p2 <- create_hist_density(F23_bacteria, "LIVECounts", "Live Bacteria Distribution", "Live Bacteria")
+p3 <- create_hist_density(F23_bacteria, "TotalCells_corrected.m3", "Bacteria Concentration Distribution", "Bacteria concentration (cells/m³)")
+p4 <- create_hist_density(F23_bacteria, "LiveRatio", "Live Bacteria Ratio Distribution", "Live Bacteria Ratio")
+p5 <- create_hist_density(F23_bacteria, "MedianPM2.5_ug.m3", "PM2.5 Distribution", "PM2.5 (μg/m³)")
+p6 <- create_hist_density(F23_bacteria, "MeanTemp_C", "Temperature Distribution", "Temperature (°C)")
+p7 <- create_hist_density(F23_bacteria, "MeanRH", "Relative Humidity Distribution", "Relative Humidity (%)")
+p8 <- create_hist_density(F23_bacteria, "MeanMR", "Moisture Ratio Distribution", "Moisture Ratio")
+p9 <- create_hist_density(F23_bacteria, "ALL_carbon_mg.m3", "Carbon Distribution", "Carbon (mg/m³)")
+p10 <- create_hist_density(F23_bacteria, "MeanMCE", "MCE Distribution", "Modified Combustion Efficiency")
 
 # Display all plots in a grid
 (p1 + p2) / (p3 + p4) / (p5 + p6) / (p7 + p8) / (p9 + p10) + 
@@ -1033,10 +1092,10 @@ cat("\n=== Additional Data Visualizations ===\n")
 # 1. Boxplots by smoke level for key variables
 cat("\n1. Boxplots by Smoke Level:\n")
 
-bp1 <- create_boxplot(bacteria, "TotalCells_corrected.m3", "Bacteria Concentration by Smoke Level")
-bp2 <- create_boxplot(bacteria, "LiveRatio", "Live Bacteria Ratio by Smoke Level")
-bp3 <- create_boxplot(bacteria, "MedianPM2.5_ug.m3", "PM2.5 by Smoke Level")
-bp4 <- create_boxplot(bacteria, "ALL_carbon_mg.m3", "Carbon by Smoke Level")
+bp1 <- create_boxplot(F23_bacteria, "TotalCells_corrected.m3", "Bacteria Concentration by Smoke Level")
+bp2 <- create_boxplot(F23_bacteria, "LiveRatio", "Live Bacteria Ratio by Smoke Level")
+bp3 <- create_boxplot(F23_bacteria, "MedianPM2.5_ug.m3", "PM2.5 by Smoke Level")
+bp4 <- create_boxplot(F23_bacteria, "ALL_carbon_mg.m3", "Carbon by Smoke Level")
 
 (bp1 + bp2) / (bp3 + bp4) +
   plot_annotation(title = "Variable Distributions by Smoke Level")
@@ -1047,7 +1106,7 @@ cat("\n2. Correlation Matrix:\n")
 # Select numeric variables for correlation
 cor_vars <- c("TotalCells", "LIVECounts", "TotalCells_corrected.m3", "LiveRatio", "MedianPM2.5_ug.m3", 
               "MeanTemp_C", "MeanRH", "MeanMR", "ALL_carbon_mg.m3", "MeanMCE")
-cor_data <- bacteria[cor_vars]
+cor_data <- F23_bacteria[cor_vars]
 cor_matrix <- cor(cor_data, use = "pairwise.complete.obs")
 
 # Create correlation heatmap
@@ -1060,7 +1119,7 @@ corrplot(cor_matrix, method = "color", type = "upper",
 cat("\n3. Key Variable Relationships:\n")
 
 # Bacteria vs PM2.5
-sp1 <- ggplot(bacteria, aes(x = MedianPM2.5_ug.m3, y = TotalCells_corrected.m3, color = SmokeLevel)) +
+sp1 <- ggplot(F23_bacteria, aes(x = MedianPM2.5_ug.m3, y = TotalCells_corrected.m3, color = SmokeLevel)) +
   geom_point(alpha = 0.7, size = 2) +
   geom_smooth(method = "lm", se = TRUE, alpha = 0.3) +
   labs(title = "Bacteria Concentration vs PM2.5", 
@@ -1070,7 +1129,7 @@ sp1 <- ggplot(bacteria, aes(x = MedianPM2.5_ug.m3, y = TotalCells_corrected.m3, 
   theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 10))
 
 # Bacteria vs Carbon
-sp2 <- ggplot(bacteria, aes(x = ALL_carbon_mg.m3, y = TotalCells_corrected.m3, color = SmokeLevel)) +
+sp2 <- ggplot(F23_bacteria, aes(x = ALL_carbon_mg.m3, y = TotalCells_corrected.m3, color = SmokeLevel)) +
   geom_point(alpha = 0.7, size = 2) +
   geom_smooth(method = "lm", se = TRUE, alpha = 0.3) +
   labs(title = "Bacteria Concentration vs Carbon", 
@@ -1080,7 +1139,7 @@ sp2 <- ggplot(bacteria, aes(x = ALL_carbon_mg.m3, y = TotalCells_corrected.m3, c
   theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 10))
 
 # Live Ratio vs PM2.5
-sp3 <- ggplot(bacteria, aes(x = MedianPM2.5_ug.m3, y = LiveRatio, color = SmokeLevel)) +
+sp3 <- ggplot(F23_bacteria, aes(x = MedianPM2.5_ug.m3, y = LiveRatio, color = SmokeLevel)) +
   geom_point(alpha = 0.7, size = 2) +
   geom_smooth(method = "lm", se = TRUE, alpha = 0.3) +
   labs(title = "Live Bacteria Ratio vs PM2.5", 
@@ -1090,7 +1149,7 @@ sp3 <- ggplot(bacteria, aes(x = MedianPM2.5_ug.m3, y = LiveRatio, color = SmokeL
   theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 10))
 
 # Live vs Total Bacteria
-sp4 <- ggplot(bacteria, aes(x = TotalCells, y = LIVECounts, color = SmokeLevel)) +
+sp4 <- ggplot(F23_bacteria, aes(x = TotalCells, y = LIVECounts, color = SmokeLevel)) +
   geom_point(alpha = 0.7, size = 2) +
   geom_smooth(method = "lm", se = TRUE, alpha = 0.3) +
   labs(title = "Live vs Total Bacteria", 
@@ -1104,7 +1163,7 @@ sp4 <- ggplot(bacteria, aes(x = TotalCells, y = LIVECounts, color = SmokeLevel))
 
 # 5. Summary statistics by smoke level
 cat("\n5. Summary Statistics by Smoke Level:\n")
-smoke_summary <- bacteria %>%
+smoke_summary <- F23_bacteria %>%
   group_by(SmokeLevel) %>%
   summarise(
     n_samples = n(),
@@ -1126,14 +1185,14 @@ print(smoke_summary)
 ```{r FASMEE23 bacteria GLMM}
 FASMEE23_BacteriaCatModel <- glmmTMB(TotalCells ~ SmokeLevel + offset(log(RepVolume_L)) + 
                            (1|Platform:SampleID) + (1|LB_Batch),
-                         family=nbinom2(link="log"), data = bacteria, 
+                         family=nbinom2(link="log"), data = F23_bacteria, 
                          ziformula = ~ SmokeLevel, dispformula = ~ (1|Platform:SampleID))
 summary(FASMEE23_BacteriaCatModel)
 
 # DHARMa diagnostics
 res <- simulateResiduals(fittedModel = FASMEE23_BacteriaCatModel, plot = FALSE)
 plotQQunif(res)
-testCategorical(res, catPred = bacteria$SmokeLevel) # Residuals by group
+testCategorical(res, catPred = F23_bacteria$SmokeLevel) # Residuals by group
 plotResiduals(res)
 testZeroInflation(res)
 simOutput_cond <- simulateResiduals(FASMEE23_BacteriaCatModel, re.form = NULL)
@@ -1161,14 +1220,14 @@ print(drop1(FASMEE23_BacteriaCatModel, test = "Chisq"))
 
 FASMEE23_BacteriaCatModel <- glmmTMB(TotalCells ~ SampleType + offset(log(RepVolume_L)) + 
                            (1|Platform:SampleID) + (1|LB_Batch),
-                         family=nbinom2(link="log"), data = bacteria, 
+                         family=nbinom2(link="log"), data = F23_bacteria, 
                          ziformula = ~1, dispformula = ~ (1|Platform:SampleID))
 summary(FASMEE23_BacteriaCatModel)
 
 # DHARMa diagnostics
 res <- simulateResiduals(fittedModel = FASMEE23_BacteriaCatModel, plot = FALSE)
 plotQQunif(res)
-testCategorical(res, catPred = bacteria$SampleType) # Residuals by group
+testCategorical(res, catPred = F23_bacteria$SampleType) # Residuals by group
 plotResiduals(res)
 testZeroInflation(res)
 simOutput_cond <- simulateResiduals(FASMEE23_BacteriaCatModel, re.form = NULL)
@@ -1233,11 +1292,11 @@ F23_bacteria_sig_bars$annotation <- ifelse(
 
 
 F23_bacteria_plt <- ggplot(bacteria_cat, aes(x = SampleType, y = Bacteria.m3)) + 
-  geom_point(data = bacteria, 
+  geom_point(data = F23_bacteria, 
              aes(x = SampleType, y = TotalCells_corrected.m3, color = "Raw Data"), 
              position = position_jitter(width = 0.15), 
              alpha = 0.3, size = 1) +
-  geom_violin(data = bacteria, 
+  geom_violin(data = F23_bacteria, 
             aes(x = SampleType, y = TotalCells_corrected.m3), 
             fill = NA, color = "gold3", width = 0.8) +  
   geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper), 
@@ -1282,7 +1341,7 @@ F23_bacteria_plt <- ggplot(bacteria_cat, aes(x = SampleType, y = Bacteria.m3)) +
         legend.position = c(0.02, 0.98),
         legend.justification = c(0, 1),
         legend.key = element_rect(fill = "white", color = NA)) +
-  coord_cartesian(ylim = c(0, max(bacteria$TotalCells_corrected.m3 * 0.4)))
+  coord_cartesian(ylim = c(0, max(F23_bacteria$TotalCells_corrected.m3 * 0.4)))
 
 print(F23_bacteria_plt)
 
@@ -1313,7 +1372,7 @@ ggsave('Output/Output_figs/K4_F23_SmokeVsAmbient_Models.png', K4_F23_amb_vs_smok
 
 # [9] Modeling for research question #3: FASMEE23 live bacteria ratio in ambient vs. smoke conditions
 ```{r FASMEE23 Live bacteria ratio}
-blueF23 <- bacteria %>%
+blueF23 <- F23_bacteria %>%
   filter(
     Platform != "Red"
   )
@@ -1814,59 +1873,190 @@ ggplot(qPCRvsCell, aes(x = DNA18s_copies.sample, y = TotalSpores.filter)) +
 ```
 
 # [17] Emission rates (fluxes)
-
-## Konza 4 spores and bacteria
 ```{r}
-
-Konza4_spores_pa_C 
-
-K4_UAS <- read_csv('./Output/Output_data/K4/K4_FlightsAGL.csv') %>%
-  group_by(Sample) %>%
-  summarise(
-    MeanAGL = mean(AGL_m))
-
-Konza4_spores_pa_C <- left_join(Konza4_spores_pa_C, K4_UAS, by = "Sample")
-
 k_turb0 = 10 ##(m2/s) -- Leads to the same range of values as burrows and Sesartic 
 k_turb1 = 100 ##(m2/second) --  
-k_turb2 = 10 ##(m2/second) --
+```
+## Konza 4 spores and bacteria
+```{r}
+# Konza 4 spores
 
-deltaZ = 20 ## altitude in meters
+Konza4_spores_pa_C <- Konza4_spores_pa_C %>%
+  mutate(   ##Calculating Flux using method provided in Jacob (1999) and Sesartic and Dallafior (2011)                            
+    deltaT0_s = (((MeanAGL)^2)/(2*k_turb0)),
+    deltaT1_s = (((MeanAGL)^2)/(2*k_turb1)),
+    flux0_spores.m2sec = ((TotalSpores_corrected.m3*MeanAGL)/(deltaT0_s)),
+    flux1_spores.m2sec = ((TotalSpores_corrected.m3*MeanAGL)/(deltaT1_s)),
+    flux_spores.m2sec = if_else(SampleType == "Ambient", 
+                               ((TotalSpores_corrected.m3*MeanAGL)/(deltaT0_s)), 
+                               ((TotalSpores_corrected.m3*MeanAGL)/(deltaT1_s)))
+    )
 
-deltaT1_s = (((deltaZ)^2)/(2*k_turb1)) 
+K4_spore_flux_sample <- Konza4_spores_pa_C %>%
+  group_by(Sample, SampleType) %>% 
+  summarise(
+    meanAGL = mean(MeanAGL),
+    mean_flux0_spores.m2sec = mean(flux0_spores.m2sec),
+    sd_flux0_spores.m2sec = sd(flux0_spores.m2sec),
+    mean_flux1_spores.m2sec = mean(flux1_spores.m2sec),
+    sd_flux1_spores.m2sec = sd(flux1_spores.m2sec),
+    mean_flux_spores.m2sec = mean(flux_spores.m2sec),
+    sd_flux_spores.m2sec = sd(flux_spores.m2sec)  
+  )
 
-mutate(   ##Calculating Flux using method provided in Jacob (1999) and Sesartic and Dallafior (2011)                            
-    deltaT0_s = (((deltaZ)^2)/(2*k_turb0)),
-    deltaT1_s = (((deltaZ)^2)/(2*k_turb1)),
-    deltaT2_s = (((deltaZ)^2)/(2*k_turb2)),
-    flux0_cells.m2sec = ((tot_cells.m3*deltaZ)/(deltaT0_s)),
-    flux1_cells.m2sec = ((tot_cells.m3*deltaZ)/(deltaT1_s)),
-    flux2_cells.m2sec = ((tot_cells.m3*deltaZ)/(deltaT2_s)),
+cat("K4 spore flux by sample\n")
+print(tibble(K4_spore_flux_sample))
+
+K4_spore_flux_SampleType <- Konza4_spores_pa_C %>%
+  group_by(SampleType) %>%
+  summarise(
+    meanAGL = mean(MeanAGL),
+    mean_flux0_spores.m2sec = mean(flux0_spores.m2sec),
+    sd_flux0_spores.m2sec = sd(flux0_spores.m2sec),
+    mean_flux1_spores.m2sec = mean(flux1_spores.m2sec),
+    sd_flux1_spores.m2sec = sd(flux1_spores.m2sec),
+    mean_flux_spores.m2sec = mean(flux_spores.m2sec),
+    sd_flux_spores.m2sec = sd(flux_spores.m2sec)  
+  )
+
+cat("\nK4 spore flux by sample type\n")
+print(tibble(K4_spore_flux_SampleType))
+
+# Konza 4 bacteria
+
+K4_bacteria <- K4_bacteria %>%
+  mutate(   ##Calculating Flux using method provided in Jacob (1999) and Sesartic and Dallafior (2011)                            
+    deltaT0_s = (((MeanAGL)^2)/(2*k_turb0)),
+    deltaT1_s = (((MeanAGL)^2)/(2*k_turb1)),
+    flux0_cells.m2sec = ((TotalCells_corrected.m3*MeanAGL)/(deltaT0_s)),
+    flux1_cells.m2sec = ((TotalCells_corrected.m3*MeanAGL)/(deltaT1_s)),
+    flux_cells.m2sec = if_else(SampleType == "Ambient", 
+                               ((TotalCells_corrected.m3*MeanAGL)/(deltaT0_s)), 
+                               ((TotalCells_corrected.m3*MeanAGL)/(deltaT1_s)))
+    )    
+
+K4_bacteria_flux_sample <- K4_bacteria %>%
+group_by(Sample, SampleType) %>% 
+  summarise(
+    meanAGL = mean(MeanAGL),
+    mean_flux0_cells.m2sec = mean(flux0_cells.m2sec),
+    sd_flux0_cells.m2sec = sd(flux0_cells.m2sec),
+    mean_flux1_cells.m2sec = mean(flux1_cells.m2sec),
+    sd_flux1_cells.m2sec = sd(flux1_cells.m2sec),
+    mean_flux_cells.m2sec = mean(flux_cells.m2sec),
+    sd_flux_cells.m2sec = sd(flux_cells.m2sec),
+  )
+
+cat("K4 bacteria flux by sample\n")
+print(tibble(K4_bacteria_flux_sample))
+
+K4_bacteria_flux_SampleType <- K4_bacteria %>%
+  group_by(SampleType) %>%
+  summarise(
+    meanAGL = mean(MeanAGL),
+    mean_flux0_cells.m2sec = mean(flux0_cells.m2sec),
+    sd_flux0_cells.m2sec = sd(flux0_cells.m2sec),
+    mean_flux1_cells.m2sec = mean(flux1_cells.m2sec),
+    sd_flux1_cells.m2sec = sd(flux1_cells.m2sec),
+    mean_flux_cells.m2sec = mean(flux_cells.m2sec),
+    sd_flux_cells.m2sec = sd(flux_cells.m2sec),
+  )
+
+cat("\nK4 bacteria flux by sample type\n")
+print(tibble(K4_bacteria_flux_SampleType))
 
 
 ```
 
+
 ## FASMEE23 spores and bacteria
 
 ```{r}
+# F23 spores
 
-F23_UAS <- read_csv('./Output/Output_data/FASMEE23/FASMEE23_FlightsAGL.csv') %>%
-  mutate(
-    datetime.utc. = ymd_hms(datetime.utc., tz = ('UTC'))
-  ) %>%
-  group_by(Sample) %>%
-  arrange(datetime.utc., .by_group = TRUE) %>%
-  mutate(
-    min_time = min(datetime.utc.),
-    max_time = max(datetime.utc.)
-  ) %>%
-  filter(
-    datetime.utc. >= min_time + minutes(2),
-    datetime.utc. <= max_time - minutes(2)
-  ) %>%
+F23_BlueSpores <- F23_BlueSpores %>%
+  mutate(   ##Calculating Flux using method provided in Jacob (1999) and Sesartic and Dallafior (2011)                            
+    deltaT0_s = (((MeanAGL)^2)/(2*k_turb0)),
+    deltaT1_s = (((MeanAGL)^2)/(2*k_turb1)),
+    flux0_spores.m2sec = ((TotalSpores_corrected.m3*MeanAGL)/(deltaT0_s)),
+    flux1_spores.m2sec = ((TotalSpores_corrected.m3*MeanAGL)/(deltaT1_s)),
+    flux_spores.m2sec = if_else(SampleType == "Ambient", 
+                               ((TotalSpores_corrected.m3*MeanAGL)/(deltaT0_s)), 
+                               ((TotalSpores_corrected.m3*MeanAGL)/(deltaT1_s)))
+    )
+
+F23_BlueSpores_flux_sample <- F23_BlueSpores %>%
+group_by(SampleID_short, SampleType) %>%
   summarise(
-    MeanAGL = mean(AGL_m)
+    meanAGL = mean(MeanAGL),
+    mean_flux0_spores.m2sec = mean(flux0_spores.m2sec),
+    sd_flux0_spores.m2sec = sd(flux0_spores.m2sec),
+    mean_flux1_spores.m2sec = mean(flux1_spores.m2sec),
+    sd_flux1_spores.m2sec = sd(flux1_spores.m2sec),
+    mean_flux_spores.m2sec = mean(flux_spores.m2sec),
+    sd_flux_spores.m2sec = sd(flux_spores.m2sec)  
+  ) %>% arrange(as.numeric(str_extract(SampleID_short, "\\d+")))
+
+cat("F23 spore flux by sample\n")
+print(tibble(F23_BlueSpores_flux_sample))
+
+F23_BlueSpores_flux_SampleType <- F23_BlueSpores %>%
+  group_by(SampleType) %>%
+  summarise(
+    meanAGL = mean(MeanAGL),
+    mean_flux0_spores.m2sec = mean(flux0_spores.m2sec),
+    sd_flux0_spores.m2sec = sd(flux0_spores.m2sec),
+    mean_flux1_spores.m2sec = mean(flux1_spores.m2sec),
+    sd_flux1_spores.m2sec = sd(flux1_spores.m2sec),
+    mean_flux_spores.m2sec = mean(flux_spores.m2sec),
+    sd_flux_spores.m2sec = sd(flux_spores.m2sec)  
   )
+
+cat("\nF23 spore flux by sample type\n")
+print(tibble(F23_BlueSpores_flux_SampleType))
+
+# F23 bacteria
+
+F23_BlueBacteria <- F23_BlueBacteria %>%
+  mutate(   ##Calculating Flux using method provided in Jacob (1999) and Sesartic and Dallafior (2011)                            
+    deltaT0_s = (((MeanAGL)^2)/(2*k_turb0)),
+    deltaT1_s = (((MeanAGL)^2)/(2*k_turb1)),
+    flux0_cells.m2sec = ((TotalCells_corrected.m3*MeanAGL)/(deltaT0_s)),
+    flux1_cells.m2sec = ((TotalCells_corrected.m3*MeanAGL)/(deltaT1_s)),
+    flux_cells.m2sec = if_else(SampleType == "Ambient", 
+                               ((TotalCells_corrected.m3*MeanAGL)/(deltaT0_s)), 
+                               ((TotalCells_corrected.m3*MeanAGL)/(deltaT1_s)))
+    )    
+
+F23_BlueBacteria_flux_sample <- F23_BlueBacteria %>%
+group_by(SampleID_short, SampleType) %>% 
+  summarise(
+    meanAGL = mean(MeanAGL),
+    mean_flux0_cells.m2sec = mean(flux0_cells.m2sec),
+    sd_flux0_cells.m2sec = sd(flux0_cells.m2sec),
+    mean_flux1_cells.m2sec = mean(flux1_cells.m2sec),
+    sd_flux1_cells.m2sec = sd(flux1_cells.m2sec),
+    mean_flux_cells.m2sec = mean(flux_cells.m2sec),
+    sd_flux_cells.m2sec = sd(flux_cells.m2sec),
+  ) %>% arrange(as.numeric(str_extract(SampleID_short, "\\d+")))
+
+cat("F23 bacteria flux by sample\n")
+print(tibble(F23_BlueBacteria_flux_sample))
+
+F23_BlueBacteria_flux_SampleType <- F23_BlueBacteria %>%
+  group_by(SampleType) %>%
+  summarise(
+    meanAGL = mean(MeanAGL),
+    mean_flux0_cells.m2sec = mean(flux0_cells.m2sec),
+    sd_flux0_cells.m2sec = sd(flux0_cells.m2sec),
+    mean_flux1_cells.m2sec = mean(flux1_cells.m2sec),
+    sd_flux1_cells.m2sec = sd(flux1_cells.m2sec),
+    mean_flux_cells.m2sec = mean(flux_cells.m2sec),
+    sd_flux_cells.m2sec = sd(flux_cells.m2sec),
+  ) 
+
+cat("\nF23 bacteria flux by sample type\n")
+print(tibble(F23_BlueBacteria_flux_SampleType))
 
 
 ```
