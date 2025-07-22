@@ -110,11 +110,11 @@ Microbes were enumerated using epifluorescence microscopy after fluorescent stai
 
 # [4] Konza4 spore data summary
 
-```{r data-load, echo=FALSE}
-Konza4_spores_pa_C_copy <- read_csv('./Output/Output_data/K4/k4_Spores_PA_C.csv') 
-
-Konza4_spores_pa_C <- Konza4_spores_pa_C_copy %>%
-  select(Project, SampleID, TotalSpores, RepVolume_L = Slide_RepVolume_L, SmokeLevel, LB_Batch, Day,
+```{r data-import, include=FALSE}
+# Konza4 Spores
+K4_spores_raw <- read_csv('./Output/Output_data/K4/k4_Spores_PA_C.csv')
+Konza4_spores_pa_C <- K4_spores_raw %>%
+  select(Project, SampleID, Sample = Sample_num, TotalSpores, RepVolume_L = Slide_RepVolume_L, SmokeLevel, LB_Batch, Day,
          MeanMR, MedianPM2.5_ug.m3, MeanTemp_C, MeanRH, TotalSpores_corrected.m3 = TotalSpores_FBLBcorr.m3, 
          SampleType, ALL_carbon_mg.m3, MeanMCE) %>%
   filter(SampleType != "FieldBlank" & SampleType != "LabBlank") %>%
@@ -123,9 +123,72 @@ Konza4_spores_pa_C <- Konza4_spores_pa_C_copy %>%
     SampleType = as.factor(SampleType),
     Day = as.factor(Day),
     LB_Batch = as.factor(LB_Batch),
-    SmokeLevel = factor(SmokeLevel, levels = c("None", "Low", "High"))) %>%
-    filter(SampleID != "14A") # remove sample 14A because it was from a different fuel type (juniper trees torching)
+    SmokeLevel = factor(SmokeLevel, levels = c("None", "Low", "High"))
+  ) %>%
+  filter(SampleID != "14A")
 
+K4_UAS <- read_csv('./Output/Output_data/K4/K4_FlightsAGL.csv') %>%
+  group_by(Sample) %>%
+  summarise(
+    MeanAGL = mean(AGL_m))
+
+Konza4_spores_pa_C <- left_join(Konza4_spores_pa_C, K4_UAS, by = "Sample")
+
+# FASMEE23 Spores
+FASMEE23_spores_raw <- read.csv('./Output/Output_data/FASMEE23/FASMEE23_Spores_PA_C.csv') 
+FASMEE23_spores_pa_C <- FASMEE23_spores_raw %>%
+  select(Project, SampleID, SampleID_short, TotalSpores, TotalSpores.filter, RepVolume_L, SmokeLevel, LB_Batch, Day,
+         MeanMR, MedianPM2.5_ug.m3, MeanTemp_C, MeanRH, TotalSpores_corrected.m3 = TotalSpores_FBLBcorr.m3, 
+         SampleType, Platform, ALL_carbon_mg.m3 = Gas_TC_Carbon_mg.m3, MeanMCE) %>%
+  filter(SampleType != "FieldBlank" & SampleType != "LabBlank") %>%
+  filter(Platform == "Blue" | (Platform == "Red" & SampleType == "Ambient")) %>%
+  mutate(
+    Project = as.factor(Project),
+    SampleType = as.factor(SampleType),
+    Day = as.factor(Day),
+    LB_Batch = as.factor(LB_Batch),
+    SmokeLevel = if_else(Platform == "Red", "None", SmokeLevel),
+    SmokeLevel = factor(SmokeLevel, levels = c("None", "Low", "High"))
+  )
+
+# FASMEE23 Bacteria
+FASMEE23_bacteria_raw <- read_csv('./Output/Output_data/FASMEE23/FASMEE23_Bacteria_PA_C.csv') 
+bacteria <- FASMEE23_bacteria_raw %>%
+  select(Project, SampleID, TotalCells, LIVECounts, RepVolume_L, SmokeLevel, LB_Batch, Day,
+         MeanMR, MedianPM2.5_ug.m3, MeanTemp_C, MeanRH, TotalCells_corrected.m3 = TotalCells_FBLBcorr.m3, 
+         SampleType, Platform, ALL_carbon_mg.m3 = Gas_TC_Carbon_mg.m3, MeanMCE) %>%
+  filter(SampleType != "FieldBlank" & SampleType != "LabBlank") %>%
+  filter(Platform == "Blue" | (Platform == "Red" & SampleType == "Ambient")) %>%
+  mutate(
+    Project = as.factor(Project),
+    SampleType = as.factor(SampleType),
+    Day = as.factor(Day),
+    LB_Batch = as.factor(LB_Batch),
+    SmokeLevel = if_else(Platform == "Red", "None", SmokeLevel),
+    SmokeLevel = factor(SmokeLevel, levels = c("None", "Low", "High")),
+    LiveRatio = LIVECounts / TotalCells
+  )
+
+# FASMEE23 qPCR
+F23_qPCR <- read_csv('./Output/Output_data/FASMEE23/FASMEE23_qPCR_SampleInfo.csv') %>%
+  select(-Platform, -SampleID)
+
+# Konza4 Bacteria
+K4_bacteria_raw <- read_csv('./Output/Output_data/K4/k4_Bacteria_PA_C.csv')
+Konza4_bacteria <- K4_bacteria_raw
+
+Konza4_smoke_spores <- Konza4_spores_pa_C %>%
+  filter(SampleType == "Smoke")
+
+FASMEE23_smoke_spores <- FASMEE23_spores_pa_C %>%
+  filter(SampleType == "Smoke" & Platform == "Blue")
+
+FASMEE23_smoke_bacteria <- bacteria %>%
+  filter(SampleType == "Smoke" & Platform == "Blue")
+
+```
+
+```{r data-load, echo=FALSE}
 
 # Tidy data summary
 cat("=== Konza4 Spore Data Summary ===\n")
@@ -482,21 +545,7 @@ ggsave('Output/Output_figs/K4/K4_SmokeVsAmbient_SporeModel.png', k4_spore_plt, d
 
 # [6] FASMEE23 spore data summary
 ```{r FASMEE23 spores, echo=FALSE}
-FASMEE23_spores_pa_C_copy <- read.csv('./Output/Output_data/FASMEE23/FASMEE23_Spores_PA_C.csv') 
-
-FASMEE23_spores_pa_C <- FASMEE23_spores_pa_C_copy %>%
-  select(Project, SampleID, SampleID_short, TotalSpores, TotalSpores.filter, RepVolume_L, SmokeLevel, LB_Batch, Day,
-         MeanMR, MedianPM2.5_ug.m3, MeanTemp_C, MeanRH, TotalSpores_corrected.m3 = TotalSpores_FBLBcorr.m3, 
-         SampleType, Platform, ALL_carbon_mg.m3 = Gas_TC_Carbon_mg.m3, MeanMCE) %>%
-  filter(SampleType != "FieldBlank" & SampleType != "LabBlank") %>%
-  filter(Platform == "Blue" | (Platform == "Red" & SampleType == "Ambient")) %>%
-  mutate(
-    Project = as.factor(Project),
-    SampleType = as.factor(SampleType),
-    Day = as.factor(Day),
-    LB_Batch = as.factor(LB_Batch),
-    SmokeLevel = if_else(Platform == "Red", "None", SmokeLevel),
-    SmokeLevel = factor(SmokeLevel, levels = c("None", "Low", "High"))) 
+# Data already loaded and wrangled in data-import chunk
 
 # Tidy data summary
 cat("=== FASMEE23 Spore Data Summary ===\n")
@@ -912,23 +961,7 @@ ggsave('Output/Output_figs/FASMEE23/FASMEE23_SmokeLevels_SporeModel.png', p2, dp
 # [8] Modeling for Research Question #1: FASMEE23 bacteria abundance in ambient vs. smoke conditions
 
 ```{r FASMEE23 bacteria, echo=FALSE, fig.width=8, fig.height=10}
-FASMEE23_bacteria <- read_csv('./Output/Output_data/FASMEE23/FASMEE23_Bacteria_PA_C.csv') 
-
-bacteria <- FASMEE23_bacteria %>%
-  select(Project, SampleID, TotalCells, LIVECounts, RepVolume_L, SmokeLevel, LB_Batch, Day,
-         MeanMR, MedianPM2.5_ug.m3, MeanTemp_C, MeanRH, TotalCells_corrected.m3 = TotalCells_FBLBcorr.m3, 
-         SampleType, Platform, ALL_carbon_mg.m3 = Gas_TC_Carbon_mg.m3, MeanMCE) %>%
-  filter(SampleType != "FieldBlank" & SampleType != "LabBlank") %>%
-  filter(Platform == "Blue" | (Platform == "Red" & SampleType == "Ambient")) %>%
-  mutate(
-    Project = as.factor(Project),
-    SampleType = as.factor(SampleType),
-    Day = as.factor(Day),
-    LB_Batch = as.factor(LB_Batch),
-    SmokeLevel = if_else(Platform == "Red", "None", SmokeLevel),
-    SmokeLevel = factor(SmokeLevel, levels = c("None", "Low", "High")),
-    LiveRatio = LIVECounts / TotalCells) 
-
+# Data already loaded and wrangled in data-import chunk
 
 # Tidy data summary
 cat("=== FASMEE23 Bacteria Data Summary ===\n")
@@ -1306,11 +1339,6 @@ print(drop1(FASMEE23_LiveRatioModel, test = "Chisq"))
 
 # [10] Modeling for research question #2: Environmental drivers of Konza4 smoke spore abundance
 
-```{r Konza4 smoke spores}
-Konza4_smoke_spores <- Konza4_spores_pa_C %>%
-  filter(SampleType == "Smoke")
-
-```
 
 ## [10.1] GLMM model for Konza4 smoke spore abundance vs. environmental drivers and DHARMa diagnostics for assessment
 ```{r Konza4 smoke spore GLMM}
@@ -1400,12 +1428,6 @@ p_mr <- ggplot() +
 
 # [11] Modeling for research question #2: Environmental drivers of FASMEE23 smoke spore abundance
 
-```{r FASMEE23 smoke spores, echo=FALSE}
-FASMEE23_smoke_spores <- FASMEE23_spores_pa_C %>%
-  filter(SampleType == "Smoke" & Platform == "Blue")
-
-```
-
 ## [11.1] GLMM model for FASMEE23 smoke spore abundance vs. environmental drivers and DHARMa diagnostics for assessment
 
 ### FASMEE23 smoke spore abundance vs. environmental drivers model shows poor fit and no significant effects
@@ -1449,11 +1471,6 @@ testDispersion(simOutput_cond)
 ```
 
 # [12] Modeling for research question #2: Environmental drivers of FASMEE23 smoke bacteria abundance
-```{r FASMEE23 smoke bacteria}
-FASMEE23_smoke_bacteria <- bacteria %>%
-  filter(SampleType == "Smoke" & Platform == "Blue")
-
-```
 
 ## [12.1] GLMM model for FASMEE23 smoke bacteria abundance vs. environmental drivers and DHARMa diagnostics for assessment
 
@@ -1671,34 +1688,34 @@ calculate_ef_stats <- function(data, ef_column) {
     )
 }
 
-# Calculate emission factors for all groups
-ef_results <- list(
-  # Konza4 Bacteria
-  konza4_bacteria = read_csv('./Output/Output_data/K4/k4_Bacteria_PA_C.csv') %>%
-    filter(SampleType == "Smoke") %>%
-    calculate_ef_stats("Total_bacteria.Mg"),
-  
-  # Konza4 Spores
-  konza4_spores = Konza4_spores_pa_C_copy %>%
-    filter(SampleType == "Smoke") %>%
-    calculate_ef_stats("spores.Mg"),
-  
-  # FASMEE23 Bacteria
-  fasmee23_bacteria = FASMEE23_bacteria %>%
-    filter(SampleType == "Smoke" & Platform == "Blue") %>%
-    calculate_ef_stats("Total_bacteria.Mg"),
-  
-  # FASMEE23 Spores
-  fasmee23_spores = FASMEE23_spores_pa_C_copy %>%
-    filter(SampleType == "Smoke" & Platform == "Blue") %>%
-    calculate_ef_stats("spores.Mg")
-)
+# Calculate emission factors for all groups using already-imported data
+# Konza4 Bacteria
+konza4_bacteria_ef <- Konza4_bacteria %>%
+  filter(SampleType == "Smoke") %>%
+  calculate_ef_stats("Total_bacteria.Mg")
+
+# Konza4 Spores
+konza4_spores_ef <- K4_spores_raw %>%
+  filter(SampleType == "Smoke") %>%
+  calculate_ef_stats("spores.Mg")
+
+# FASMEE23 Bacteria
+fasmee23_bacteria_ef <- FASMEE23_bacteria_raw %>%
+  filter(SampleType == "Smoke" & Platform == "Blue") %>%
+  calculate_ef_stats("Total_bacteria.Mg")
+
+# FASMEE23 Spores
+fasmee23_spores_ef <- FASMEE23_spores_raw %>%
+  filter(SampleType == "Smoke" & Platform == "Blue") %>%
+  calculate_ef_stats("spores.Mg")
+
+# Combine for plotting
 
 ef_df <- bind_rows(
-  ef_results$konza4_bacteria %>% mutate(Group = "Bacteria", Study = "Konza4"),
-  ef_results$konza4_spores %>% mutate(Group = "Spores", Study = "Konza4"),
-  ef_results$fasmee23_bacteria %>% mutate(Group = "Bacteria", Study = "FASMEE23"),
-  ef_results$fasmee23_spores %>% mutate(Group = "Spores", Study = "FASMEE23")
+  konza4_bacteria_ef %>% mutate(Group = "Bacteria", Study = "Konza4"),
+  konza4_spores_ef %>% mutate(Group = "Spores", Study = "Konza4"),
+  fasmee23_bacteria_ef %>% mutate(Group = "Bacteria", Study = "FASMEE23"),
+  fasmee23_spores_ef %>% mutate(Group = "Spores", Study = "FASMEE23")
 ) %>%
   select(Group, Study, EF, SE, Lower_CI, Upper_CI)
 
@@ -1778,9 +1795,6 @@ combined_plot <- (p_fasmee | p_konza4) +
 
 ```{r}
 
-F23_qPCR <- read_csv('./Output/Output_data/FASMEE23/FASMEE23_qPCR_SampleInfo.csv') %>%
-  select(-Platform, -SampleID)
-
 summary(F23_qPCR$DNA18s_copies_FBcorr.m3, na.rm = T)
 
 qPCRvsCell <- left_join(F23_qPCR, FASMEE23_spores_pa_C, by = c("SampleID_short")) %>%
@@ -1804,7 +1818,14 @@ ggplot(qPCRvsCell, aes(x = DNA18s_copies.sample, y = TotalSpores.filter)) +
 ## Konza 4 spores and bacteria
 ```{r}
 
+Konza4_spores_pa_C 
 
+K4_UAS <- read_csv('./Output/Output_data/K4/K4_FlightsAGL.csv') %>%
+  group_by(Sample) %>%
+  summarise(
+    MeanAGL = mean(AGL_m))
+
+Konza4_spores_pa_C <- left_join(Konza4_spores_pa_C, K4_UAS, by = "Sample")
 
 k_turb0 = 10 ##(m2/s) -- Leads to the same range of values as burrows and Sesartic 
 k_turb1 = 100 ##(m2/second) --  
@@ -1829,7 +1850,23 @@ mutate(   ##Calculating Flux using method provided in Jacob (1999) and Sesartic 
 
 ```{r}
 
-
+F23_UAS <- read_csv('./Output/Output_data/FASMEE23/FASMEE23_FlightsAGL.csv') %>%
+  mutate(
+    datetime.utc. = ymd_hms(datetime.utc., tz = ('UTC'))
+  ) %>%
+  group_by(Sample) %>%
+  arrange(datetime.utc., .by_group = TRUE) %>%
+  mutate(
+    min_time = min(datetime.utc.),
+    max_time = max(datetime.utc.)
+  ) %>%
+  filter(
+    datetime.utc. >= min_time + minutes(2),
+    datetime.utc. <= max_time - minutes(2)
+  ) %>%
+  summarise(
+    MeanAGL = mean(AGL_m)
+  )
 
 
 ```
