@@ -485,7 +485,7 @@ ggsave('Output/Output_figs/K4/K4_SmokeVsAmbient_SporeModel.png', k4_spore_plt, d
 FASMEE23_spores_pa_C_copy <- read.csv('./Output/Output_data/FASMEE23/FASMEE23_Spores_PA_C.csv') 
 
 FASMEE23_spores_pa_C <- FASMEE23_spores_pa_C_copy %>%
-  select(Project, SampleID, TotalSpores, RepVolume_L, SmokeLevel, LB_Batch, Day,
+  select(Project, SampleID, SampleID_short, TotalSpores, TotalSpores.filter, RepVolume_L, SmokeLevel, LB_Batch, Day,
          MeanMR, MedianPM2.5_ug.m3, MeanTemp_C, MeanRH, TotalSpores_corrected.m3 = TotalSpores_FBLBcorr.m3, 
          SampleType, Platform, ALL_carbon_mg.m3 = Gas_TC_Carbon_mg.m3, MeanMCE) %>%
   filter(SampleType != "FieldBlank" & SampleType != "LabBlank") %>%
@@ -1427,6 +1427,26 @@ simOutput_cond <- simulateResiduals(FASMEE23_Smoke_model, re.form = NULL)
 testDispersion(simOutput_cond) 
 ```
 
+## [11.2] GLMM model for FASMEE23 smoke spore abundance vs combustion efficiancy 
+```{r}
+FASMEE23_smoke_spores_carbon <- FASMEE23_smoke_spores %>% filter(!is.na(MeanMCE))
+
+FASMEE23_Smoke_model <- glmmTMB(TotalSpores_corrected.m3 ~ MeanMCE + offset(log(RepVolume_L)) + 
+                         (1|SampleID),
+                       family=tweedie(link="log"), data = FASMEE23_smoke_spores_carbon)
+summary(FASMEE23_Smoke_model)
+
+res <- simulateResiduals(fittedModel = FASMEE23_Smoke_model, plot = F)
+plotResiduals(res)
+plotResiduals(res, FASMEE23_smoke_spores_carbon$MeanRH)
+plotQQunif(res)
+
+testZeroInflation(res)
+
+simOutput_cond <- simulateResiduals(FASMEE23_Smoke_model, re.form = NULL)
+testDispersion(simOutput_cond)
+
+```
 
 # [12] Modeling for research question #2: Environmental drivers of FASMEE23 smoke bacteria abundance
 ```{r FASMEE23 smoke bacteria}
@@ -1753,5 +1773,66 @@ combined_plot <- (p_fasmee | p_konza4) +
 
 #ggsave("Output/Output_figs/K4_FASMEE23_EF.png", combined_plot, width = 6.5, height = 4, dpi = 600)
 ```
+
+# [16] 18s qPCR spore enumeration comparison
+
+```{r}
+
+F23_qPCR <- read_csv('./Output/Output_data/FASMEE23/FASMEE23_qPCR_SampleInfo.csv') %>%
+  select(-Platform, -SampleID)
+
+summary(F23_qPCR$DNA18s_copies_FBcorr.m3, na.rm = T)
+
+qPCRvsCell <- left_join(F23_qPCR, FASMEE23_spores_pa_C, by = c("SampleID_short")) %>%
+  filter(!is.na(TotalSpores))
+
+qPCRvsCell_m <- glmmTMB(TotalSpores.filter ~ DNA18s_copies.sample + offset(log(RepVolume_L)) + 
+                          (1|Platform:SampleID) + (1|LB_Batch),
+                        family=nbinom2(link="log"), data = qPCRvsCell, 
+                        ziformula = ~-1, dispformula = ~ (1|Platform:SampleID))
+summary(qPCRvsCell_m)
+
+ggplot(qPCRvsCell, aes(x = DNA18s_copies.sample, y = TotalSpores.filter)) +
+  geom_point() +
+  labs(x = "DNA18s copies per sample", 
+       y = "Total Spores (filtered)") +
+  theme_minimal()
+```
+
+# [17] Emission rates (fluxes)
+
+## Konza 4 spores and bacteria
+```{r}
+
+
+
+k_turb0 = 10 ##(m2/s) -- Leads to the same range of values as burrows and Sesartic 
+k_turb1 = 100 ##(m2/second) --  
+k_turb2 = 10 ##(m2/second) --
+
+deltaZ = 20 ## altitude in meters
+
+deltaT1_s = (((deltaZ)^2)/(2*k_turb1)) 
+
+mutate(   ##Calculating Flux using method provided in Jacob (1999) and Sesartic and Dallafior (2011)                            
+    deltaT0_s = (((deltaZ)^2)/(2*k_turb0)),
+    deltaT1_s = (((deltaZ)^2)/(2*k_turb1)),
+    deltaT2_s = (((deltaZ)^2)/(2*k_turb2)),
+    flux0_cells.m2sec = ((tot_cells.m3*deltaZ)/(deltaT0_s)),
+    flux1_cells.m2sec = ((tot_cells.m3*deltaZ)/(deltaT1_s)),
+    flux2_cells.m2sec = ((tot_cells.m3*deltaZ)/(deltaT2_s)),
+
+
+```
+
+## FASMEE23 spores and bacteria
+
+```{r}
+
+
+
+
+```
+
 
 
