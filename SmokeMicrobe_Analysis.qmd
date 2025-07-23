@@ -115,8 +115,8 @@ Microbes were enumerated using epifluorescence microscopy after fluorescent stai
 K4_spores_raw <- read_csv('./Output/Output_data/K4/k4_Spores_PA_C.csv')
 Konza4_spores_pa_C <- K4_spores_raw %>%
   select(Project, SampleID, Sample = Sample_num, TotalSpores, RepVolume_L = Slide_RepVolume_L, SmokeLevel, LB_Batch, Day,
-         MeanMR, MedianPM2.5_ug.m3, MeanTemp_C, MeanRH, TotalSpores_corrected.m3 = TotalSpores_FBLBcorr.m3, 
-         SampleType, ALL_carbon_mg.m3, MeanMCE) %>%
+         MeanMR, MedianPM2.5_ug.m3, MeanTemp_C, MeanRH, TotalSpores_corrected.m3 = TotalSpores_FBLBcorr.m3, spores.Mg, 
+         spores.mg, SampleType, ALL_carbon_mg.m3, MeanMCE, MedianMCE) %>%
   filter(SampleType != "FieldBlank" & SampleType != "LabBlank") %>%
   mutate(
     Project = as.factor(Project),
@@ -154,10 +154,12 @@ K4_UAS_samples <- K4_UAS %>%
 Konza4_spores_pa_C <- left_join(Konza4_spores_pa_C, K4_UAS_samples, by = "Sample")
 
 # Konza4 Bacteria
-K4_bacteria <- read_csv('./Output/Output_data/K4/k4_Bacteria_PA_C.csv') %>%
+K4_bacteria_raw <- read_csv('./Output/Output_data/K4/k4_Bacteria_PA_C.csv') 
+
+K4_bacteria <- K4_bacteria_raw %>%
   select(Project, SampleID, Sample = Sample_num, TotalCells, LIVECounts, RepVolume_m3, SmokeLevel, LB_Batch, Day,
-         MeanMR, MedianPM2.5_ug.m3, MeanTemp_C, MeanRH, TotalCells_corrected.m3 = TotalCells_FBLBcorr.m3, 
-         SampleType, MeanMCE) %>%
+         MeanMR, MedianPM2.5_ug.m3, MeanTemp_C, MeanRH, TotalCells_corrected.m3 = TotalCells_FBLBcorr.m3, Total_bacteria.Mg, 
+         Live_bacteria.Mg, Total_bacteria.mg, Live_bacteria.mg, SampleType, MeanMCE, MedianMCE) %>%
   filter(SampleType != "FieldBlank" & SampleType != "LabBlank") %>%
   mutate(
     Sample = as.numeric(Sample)
@@ -169,8 +171,8 @@ K4_bacteria <- left_join(K4_bacteria, K4_UAS_samples, by = "Sample")
 FASMEE23_spores_raw <- read.csv('./Output/Output_data/FASMEE23/FASMEE23_Spores_PA_C.csv') 
 FASMEE23_spores_pa_C <- FASMEE23_spores_raw %>%
   select(Project, SampleID, SampleID_short, TotalSpores, TotalSpores.filter, RepVolume_L, SmokeLevel, LB_Batch, Day,
-         MeanMR, MedianPM2.5_ug.m3, MeanTemp_C, MeanRH, TotalSpores_corrected.m3 = TotalSpores_FBLBcorr.m3, 
-         SampleType, Platform, ALL_carbon_mg.m3 = Gas_TC_Carbon_mg.m3, MeanMCE) %>%
+         MeanMR, MedianPM2.5_ug.m3, MeanTemp_C, MeanRH, TotalSpores_corrected.m3 = TotalSpores_FBLBcorr.m3, spores.Mg,
+         spores.mg, SampleType, Platform, ALL_carbon_mg.m3 = Gas_TC_Carbon_mg.m3, MeanMCE, MedianMCE) %>%
   filter(SampleType != "FieldBlank" & SampleType != "LabBlank") %>%
   filter(Platform == "Blue" | (Platform == "Red" & SampleType == "Ambient")) %>%
   mutate(
@@ -213,8 +215,11 @@ F23_BlueSpores <- FASMEE23_spores_pa_C %>%
 # FASMEE23 Bacteria
 FASMEE23_bacteria_raw <- read_csv('./Output/Output_data/FASMEE23/FASMEE23_Bacteria_PA_C.csv') 
 F23_bacteria <- FASMEE23_bacteria_raw %>%
-  select(Project, SampleID, SampleID_short = Sample, TotalCells, LIVECounts, RepVolume_L, SmokeLevel, LB_Batch, Day, MeanMR, MedianPM2.5_ug.m3, MeanTemp_C, MeanRH, TotalCells_corrected.m3 = TotalCells_FBLBcorr.m3, 
-         SampleType, Platform, ALL_carbon_mg.m3 = Gas_TC_Carbon_mg.m3, MeanMCE) %>%
+  select(Project, SampleID, SampleID_short = Sample, TotalCells, LIVECounts, RepVolume_L, 
+         SmokeLevel, LB_Batch, Day, MeanMR, MedianPM2.5_ug.m3, MeanTemp_C, MeanRH, 
+         TotalCells_corrected.m3 = TotalCells_FBLBcorr.m3, Total_bacteria.Mg, Live_bacteria.Mg, 
+         Total_bacteria.mg, Live_bacteria.mg, SampleType, Platform, 
+         ALL_carbon_mg.m3 = Gas_TC_Carbon_mg.m3, MeanMCE, MedianMCE) %>%
   filter(SampleType != "FieldBlank" & SampleType != "LabBlank") %>%
   filter(Platform == "Blue" | (Platform == "Red" & SampleType == "Ambient")) %>%
   mutate(
@@ -1507,28 +1512,6 @@ testZeroInflation(res)
 simOutput_cond <- simulateResiduals(FASMEE23_Smoke_model, re.form = NULL)
 testDispersion(simOutput_cond) 
 ```
-
-## [11.2] GLMM model for FASMEE23 smoke spore abundance vs combustion efficiancy 
-```{r}
-FASMEE23_smoke_spores_carbon <- FASMEE23_smoke_spores %>% filter(!is.na(MeanMCE))
-
-FASMEE23_Smoke_model <- glmmTMB(TotalSpores_corrected.m3 ~ MeanMCE + offset(log(RepVolume_L)) + 
-                         (1|SampleID),
-                       family=tweedie(link="log"), data = FASMEE23_smoke_spores_carbon)
-summary(FASMEE23_Smoke_model)
-
-res <- simulateResiduals(fittedModel = FASMEE23_Smoke_model, plot = F)
-plotResiduals(res)
-plotResiduals(res, FASMEE23_smoke_spores_carbon$MeanRH)
-plotQQunif(res)
-
-testZeroInflation(res)
-
-simOutput_cond <- simulateResiduals(FASMEE23_Smoke_model, re.form = NULL)
-testDispersion(simOutput_cond)
-
-```
-
 # [12] Modeling for research question #2: Environmental drivers of FASMEE23 smoke bacteria abundance
 
 ## [12.1] GLMM model for FASMEE23 smoke bacteria abundance vs. environmental drivers and DHARMa diagnostics for assessment
@@ -1549,8 +1532,6 @@ testZeroInflation(res)
 simOutput_cond <- simulateResiduals(FASMEE23_Smoke_model, re.form = NULL)
 testDispersion(simOutput_cond) 
 ```
-
-
 # [13] Site comparison data summary
 ```{r Konza4 and FASMEE23 site comparison data}
 
@@ -1599,7 +1580,6 @@ p1 <- ggplot(df_spores, aes(x = Project_SampleType, y = TotalSpores_corrected.m3
 print(p1)
 
 ```
-
 # [14] Modeling for research question #4: Site comparison of Konza4 and FASMEE23
 ## [14.1] GLMM model for Konza4 and FASMEE23 site comparison
 ```{r Konza4 and FASMEE23 site comparison GLMM}
@@ -1748,36 +1728,41 @@ calculate_ef_stats <- function(data, ef_column) {
 }
 
 # Calculate emission factors for all groups using already-imported data
-# Konza4 Bacteria
-konza4_bacteria_ef <- Konza4_bacteria %>%
-  filter(SampleType == "Smoke") %>%
+# Konza4 bacteria
+konza4_bacteria_ef_stats <- K4_bacteria %>%
+  filter(SampleType == "Smoke" & !is.na(MeanMCE)) %>%
   calculate_ef_stats("Total_bacteria.Mg")
 
 # Konza4 Spores
-konza4_spores_ef <- K4_spores_raw %>%
-  filter(SampleType == "Smoke") %>%
+konza4_spores_ef_stats <- Konza4_spores_pa_C %>%
+  filter(SampleType == "Smoke" & !is.na(MeanMCE)) %>%
   calculate_ef_stats("spores.Mg")
 
 # FASMEE23 Bacteria
-fasmee23_bacteria_ef <- FASMEE23_bacteria_raw %>%
-  filter(SampleType == "Smoke" & Platform == "Blue") %>%
+fasmee23_bacteria_ef_stats <- F23_BlueBacteria %>%
+  filter(SampleType == "Smoke" & !is.na(MeanMCE)) %>%
   calculate_ef_stats("Total_bacteria.Mg")
 
 # FASMEE23 Spores
-fasmee23_spores_ef <- FASMEE23_spores_raw %>%
-  filter(SampleType == "Smoke" & Platform == "Blue") %>%
+fasmee23_spores_ef_stats <- F23_BlueSpores %>%
+  filter(SampleType == "Smoke" & !is.na(MeanMCE)) %>%
   calculate_ef_stats("spores.Mg")
 
-# Combine for plotting
-
 ef_df <- bind_rows(
-  konza4_bacteria_ef %>% mutate(Group = "Bacteria", Study = "Konza4"),
-  konza4_spores_ef %>% mutate(Group = "Spores", Study = "Konza4"),
-  fasmee23_bacteria_ef %>% mutate(Group = "Bacteria", Study = "FASMEE23"),
-  fasmee23_spores_ef %>% mutate(Group = "Spores", Study = "FASMEE23")
+  konza4_bacteria_ef_stats %>% mutate(Group = "Bacteria", Study = "Konza4"),
+  konza4_spores_ef_stats %>% mutate(Group = "Spores", Study = "Konza4"),
+  fasmee23_bacteria_ef_stats %>% mutate(Group = "Bacteria", Study = "FASMEE23"),
+  fasmee23_spores_ef_stats %>% mutate(Group = "Spores", Study = "FASMEE23")
 ) %>%
   select(Group, Study, EF, SE, Lower_CI, Upper_CI)
 
+
+print(ef_df)
+
+```
+## EF plotting
+
+```{r}
 # Split data for plots
 konza4_df <- ef_df %>% filter(Study == "Konza4")
 fasmee_df <- ef_df %>% filter(Study == "FASMEE23")
@@ -1847,7 +1832,66 @@ combined_plot <- (p_fasmee | p_konza4) +
     caption = "Error bars: 95% CI"
   )
 
+print(combined_plot)
+
 #ggsave("Output/Output_figs/K4_FASMEE23_EF.png", combined_plot, width = 6.5, height = 4, dpi = 600)
+```
+## Modeling for MCE 
+```{r}
+# Konza4 Spores
+konza4_spores_ef <- Konza4_spores_pa_C %>%
+  filter(SampleType == "Smoke" & !is.na(MeanMCE))
+
+k4_spore_mce <- glmmTMB(spores.mg ~ MeanMCE + (1|SampleID),
+                        family = tweedie(link = "log"), data = konza4_spores_ef)
+summary(k4_spore_mce)
+
+res <- simulateResiduals(fittedModel = k4_spore_mce, plot = F)
+plotResiduals(res)
+plotResiduals(res, konza4_spores_ef$MeanMCE)
+plotQQunif(res)
+
+testZeroInflation(res)
+
+simOutput_cond <- simulateResiduals(k4_spore_mce, re.form = NULL)
+testDispersion(simOutput_cond)
+
+# Konza4 Spores by sample
+
+konza4_spores_ef_sample <- konza4_spores_ef %>%
+  group_by(SampleID) %>%
+  summarise(
+    spores.Mg = mean(spores.Mg),
+    MeanMCE = mean(MeanMCE)
+  )
+
+k4_spore_mce_sample <- glm(spores.Mg ~ MeanMCE,
+                        family = Gamma(link = "log"), 
+                    data = konza4_spores_ef_sample)
+summary(k4_spore_mce_sample)
+
+res <- simulateResiduals(fittedModel = k4_spore_mce_sample, plot = F)
+plotResiduals(res)
+plotResiduals(res, konza4_spores_ef$MeanMCE)
+plotQQunif(res)
+
+testZeroInflation(res)
+
+simOutput_cond <- simulateResiduals(k4_spore_mce, re.form = NULL)
+testDispersion(simOutput_cond)
+
+
+
+
+# FASMEE23 Bacteria
+fasmee23_bacteria_ef <- F23_BlueBacteria %>%
+  filter(SampleType == "Smoke" & !is.na(MeanMCE)) 
+
+# FASMEE23 Spores
+fasmee23_spores_ef <- F23_BlueSpores %>%
+  filter(SampleType == "Smoke" & !is.na(MeanMCE)) 
+
+
 ```
 
 # [16] 18s qPCR spore enumeration comparison
