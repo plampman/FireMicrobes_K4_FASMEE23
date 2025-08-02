@@ -23,7 +23,9 @@ library(tidyverse)
 
 library(tidyverse)
 
-devtools::source_url("https://raw.githubusercontent.com/plampman/PurpleAir_Processing-/main/PurpleAirProcessing.R")
+#devtools::source_url("https://raw.githubusercontent.com/plampman/PurpleAir_Processing-/main/PurpleAirProcessing.R")
+
+source('./Script/PurpleAirProcessing.R')
 
 PA_files <- list.files('./Input_Data/FASMEE23/Blue_PA/', pattern="\\.csv$", full.names = T)
 
@@ -73,9 +75,18 @@ PA_stats_FASMEE23 <- samples_FASMEE23 %>%
     "MeanMR" = mean(as.numeric(unlist(mixing_ratio)), na.rm = T),
     "MedianMR" = median(as.numeric(unlist(mixing_ratio)), na.rm = T),
     "MaxMR" = max(as.numeric(unlist(mixing_ratio)), na.rm = T),
-    "MinMR" = min(as.numeric(unlist(mixing_ratio)), na.rm = T)
-  ) %>% ungroup
-
+    "MinMR" = min(as.numeric(unlist(mixing_ratio)), na.rm = T),
+    "p0.3um.dl" = median(p_0_3_um_avg, na.rm = T),
+    "p0.5um.dl" = median(p_0_5_um_avg, na.rm = T),
+    "p1.0um.dl" = median(p_1_0_um_avg, na.rm = T),
+    "p2.5um.dl" = median(p_2_5_um_avg, na.rm = T),
+    "p5.0um.dl" = median(p_5_0_um_avg, na.rm = T),
+    "p10.0um.dl" = median(p_10_0_um, na.rm = T), # Taken from first sensor due to corrupted data at sensor B
+    "p_lt1.0um.dl" = median(p_lt1.0_um, na.rm = T),
+    "p_lt2.5um.dl" = median(p_lt2.5_um, na.rm = T),
+    "p_lt5.0um.dl" = median(p_lt5.0_um, na.rm = T),
+    "p_lt10.0um.dl" = median(p_lt10.0_um, na.rm = T)
+    ) %>% ungroup
 
 PA_stats_FASMEE23 <- PA_stats_FASMEE23 %>%
   mutate(
