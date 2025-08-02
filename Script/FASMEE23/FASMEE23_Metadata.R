@@ -15,12 +15,14 @@ library(tidyverse)
 SampleInfo <- read.csv('./Input_Data/FASMEE23/FASMEE_Sample_Info20250329.csv', header = T)
 
 SampleInfo <- SampleInfo %>%
-  mutate(DATE_UTC = mdy(DATE_UTC, tz = 'MST7MDT'),
-         DATE_UTC = ymd(DATE_UTC),
-         SampleStart_UTC = ymd_hms(paste(DATE_UTC, SampleStart_UTC), tz = 'UTC'),
-         SampleEnd_UTC = ymd_hms(paste(DATE_UTC, SampleEnd_UTC), tz = 'UTC'),
-         DateTime_MDT = mdy_hm(DateTime_MDT, tz = 'MST7MDT'),
-         DateTime_UTC =  mdy_hm(DateTime_UTC, tz = 'UTC')) 
+  mutate(
+    SampleID_short = str_extract(SampleID, "^[A-Za-z]+\\d+"),
+    DATE_UTC = mdy(DATE_UTC, tz = 'MST7MDT'),
+    DATE_UTC = ymd(DATE_UTC),
+    SampleStart_UTC = ymd_hms(paste(DATE_UTC, SampleStart_UTC), tz = 'UTC'),
+    SampleEnd_UTC = ymd_hms(paste(DATE_UTC, SampleEnd_UTC), tz = 'UTC'),
+    DateTime_MDT = mdy_hm(DateTime_MDT, tz = 'MST7MDT'),
+    DateTime_UTC =  mdy_hm(DateTime_UTC, tz = 'UTC')) 
 
 
 blue_ints <- SampleInfo %>%

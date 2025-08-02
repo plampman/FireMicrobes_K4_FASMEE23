@@ -53,6 +53,9 @@ bacteria <- bacteria %>%
   select(-SampleType.y, -Sampler.y) %>%
   rename(SampleType = 'SampleType.x', Sampler = 'Sampler.x')
 
+#F23_Bacteria_Blanks <- bacteria %>% filter(SampleType == "LabBlank" | SampleType == "FieldBlank") %>% write_csv(., './Output/Output_data/FASMEE23/F23_LabBlankBacteria.csv')
+
+
 smokebact <- bacteria %>%
   filter(SampleType == "Smoke") %>%
   filter(TotalCells > 0)
@@ -92,14 +95,23 @@ blank_means <- bacteria %>%
   ) %>%
   ungroup
 
+blank_mean <- bacteria %>%
+  filter(SampleType == "LabBlank") %>%
+  summarise(
+    TotalCells_LB = mean(TotalCells),
+    LiveCells_LB = mean(LIVECounts),
+    DeadCells_LB = mean(DEADCounts)
+  )
+
 bacteria <- left_join(bacteria, blank_means, by = "LB_Batch")
 
 bacteria <- bacteria %>%
-  #filter(SampleType != "LabBlank") %>%
+  filter(SampleType != "LabBlank") %>%
   mutate(
     DeadCells_LBcorr = pmax(0, DEADCounts - DeadCells_LB),
     LiveCells_LBcorr = pmax(0, LIVECounts - LiveCells_LB),
-    TotalCells_LBcorr = DeadCells_LBcorr + LiveCells_LBcorr)
+    TotalCells_LBcorr = DeadCells_LBcorr + LiveCells_LBcorr,
+    Live.Total_LB_corr = LiveCells_LBcorr/TotalCells_LBcorr)
 
 FieldBlank_mean <- bacteria %>%
   filter(SampleType == "FieldBlank") %>%
@@ -111,7 +123,7 @@ FieldBlank_mean <- bacteria %>%
   ungroup
 
 bacteria <- bacteria %>%
-  #filter(SampleType != "FieldBlank") %>%
+  filter(SampleType != "FieldBlank") %>%
   mutate(
     TotalCells_FBLB = TotalCells_LB + FieldBlank_mean$TotalCells_FB,
     LiveCells_FBLB = LiveCells_LB + FieldBlank_mean$LiveCells_FB,
@@ -132,6 +144,12 @@ Ambient_mean <- bacteria %>%
     AmbientTotalCells.m3 = mean((TotalCells_FBLBcorr*FOV1000x.filter)/RepVolume_m3),
     AmbientLiveCells.m3 = mean((LiveCells_FBLBcorr*FOV1000x.filter)/RepVolume_m3),
     AmbientDeadCells.m3 = mean((DeadCells_FBLBcorr*FOV1000x.filter)/RepVolume_m3))
+
+volume_mean <- bacteria %>%
+  #group_by(SampleType) %>%
+  summarise(
+    meanVolume_m3 = mean(RepVolume_m3)
+  )
 
 bacteria <- bacteria %>%
   mutate(

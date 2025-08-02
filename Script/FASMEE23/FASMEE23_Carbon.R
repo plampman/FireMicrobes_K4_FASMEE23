@@ -204,7 +204,7 @@ FASMEE_corr_CO_CO2_mean <- FASMEE_corr_CO_CO2_mean %>%
     biomass_Mg = biomass_kg/1000)
 
 slim_fasmmee_C <- FASMEE_corr_CO_CO2_mean %>%
-  select(Sample, 3:13, 40:44) %>%
+  select(Sample, 3:13, 41:45) %>%
   mutate(
     Sample = as.numeric(Sample)
   )

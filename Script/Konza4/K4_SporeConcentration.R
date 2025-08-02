@@ -43,6 +43,8 @@ spores <- spores %>%
   mutate(
     RepVolume_m3 = Slide_RepVolume_L/1000)
 
+K4_Blanks <- spores %>% filter(SampleType == "LabBlank") %>% write_csv(., './Output/Output_data/K4/k4_LabBlankSpores.csv')
+
 blank_means <- spores %>%
   filter(SampleType == "LabBlank") %>%
   group_by(LB_Batch) %>%

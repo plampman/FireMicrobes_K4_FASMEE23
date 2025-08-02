@@ -123,7 +123,7 @@ na_count <- spores_pa_C %>%
 write.csv(spores_pa_C, 'Output/Output_data/FASMEE23/FASMEE23_Spores_PA_C.csv', row.names = F)
 
 sample_spores <- spores_pa_C  %>%
-  group_by(SampleID, AQI_PM2.5, RepVolume_m3) %>%
+  group_by(SampleID, SampleID_short, AQI_PM2.5, RepVolume_m3) %>%
   summarise(
     meanMCE = mean(MeanMCE, na.rm = T),
     meanlogPM2.5 = mean(logPM2.5),
@@ -134,7 +134,7 @@ sample_spores <- spores_pa_C  %>%
     mean_spores.m3 = mean(TotalSpores_FBLBcorr.m3),
     mean_BcorrSpores.m3 = mean(TotalSpores_Bcorr.m3, na.rm = T),
     mean_Spores.Mg = mean(spores.Mg, na.rm = T),
-    sd_spores.m3 = sd(TotalSpores_FBLBcorr.m3))
+    sd_spores.m3 = sd(TotalSpores_FBLBcorr.m3)) %>% ungroup()
 
 FEF_FASMEE23 <- spores_pa_C  %>%
   summarise(
