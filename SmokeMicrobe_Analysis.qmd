@@ -2035,6 +2035,41 @@ print(combined_plot)
 
 #ggsave("Output/Output_figs/K4_FASMEE23_EF.png", combined_plot, width = 6.5, height = 4, dpi = 600)
 ```
+##Scaling EFs up to Monroe Canyon and Four County Fires
+```{r}
+
+four_county_ha = 132933/2.471 # grassland/cropland hectares according to https://www.nass.usda.gov/Research_and_Science/Disaster-Analysis/2021/Fire_2021_Kansas/Kansas_Report_12-23-21.pdf
+
+monroe_ha = 36637/2.471 # hectares on 7/30/2025 according to NIFC (obtained from WatchDuty)
+
+monroe_fuel_Mg.ha = 95.81 # average of Kobziar et al. 2024 BEF paper, as outlined in Hudak et al. 2024
+four_country_fuel_Mg.ha = 5.415
+
+monroe_fungi_spores.Mg = 2.493874e13
+monroe_bacteria.Mg = 1.084549e14
+
+four_county_bacteria.Mg = 8.860138e11
+four_county_fungi_spores.Mg = 1.267984e12	
+
+  
+monroe_totalfuel_Mg = monroe_fuel_Mg.ha * monroe_ha
+four_county_totalfuel_Mg = four_country_fuel_Mg.ha * four_county_ha
+  
+monroe_fungi = monroe_fungi_spores.Mg * monroe_totalfuel_Mg
+four_county_fungi = four_county_fungi_spores.Mg * four_county_totalfuel_Mg
+
+monroe_bacteria = monroe_bacteria.Mg * monroe_totalfuel_Mg
+four_county_bacteria = four_county_bacteria.Mg * four_county_totalfuel_Mg
+
+monroe_total_crobe = monroe_fungi + monroe_bacteria
+four_total_crobe = four_county_fungi + four_county_bacteria
+
+print(monroe_total_crobe)
+cat("\n")
+print(four_total_crobe)
+
+```
+
 ## Modeling for MCE 
 ```{r}
 # Konza4 Spores
