@@ -1912,50 +1912,60 @@ print(p1)
 # [15] Emission Factors
 
 ```{r Emission Factors}
-# Function to calculate emission factor statistics
-calculate_ef_stats <- function(data, ef_column) {
-  data %>%
-    summarise(
-      EF = mean(!!sym(ef_column), na.rm = TRUE),
-      SE = sd(!!sym(ef_column), na.rm = TRUE) / sqrt(n()),
-      .groups = "drop"
-    ) %>%
-    mutate(
-      Lower_CI = EF - 1.96 * SE,
-      Upper_CI = EF + 1.96 * SE
-    )
+calculate_ef_stats <- function(data, ef_columns) {
+  results <- map_dfr(ef_columns, ~{
+    data %>%
+      summarise(
+        column = .x,
+        EF_value = mean(!!sym(.x), na.rm = TRUE),
+        SE_value = sd(!!sym(.x), na.rm = TRUE) / sqrt(sum(!is.na(!!sym(.x)))),
+        .groups = "drop"
+      ) %>%
+      mutate(
+        Lower_CI = EF_value - 1.96 * SE_value,
+        Upper_CI = EF_value + 1.96 * SE_value
+      )
+  })
+  return(results)
 }
 
 # Calculate emission factors for all groups using already-imported data
 # Konza4 bacteria
 konza4_bacteria_ef_stats <- K4_bacteria %>%
-  filter(SampleType == "Smoke" & !is.na(MeanMCE)) %>%
-  calculate_ef_stats("Total_bacteria.Mg")
+  filter(!is.na(MeanMCE)) %>%
+  mutate(Tot_bacteria_g.Mg = Total_bacteria.Mg*6.0e-14,
+         Live_bacteria_g.Mg = Live_bacteria.Mg*6.0e-14) %>% #mass of bacteria ~6.0×10-14 g
+  calculate_ef_stats(c("Total_bacteria.Mg", "Tot_bacteria_g.Mg", "Live_bacteria.Mg", "Live_bacteria_g.Mg"))
 
 # Konza4 Spores
-konza4_spores_ef_stats <- Konza4_spores_pa_C %>%
-  filter(SampleType == "Smoke" & !is.na(MeanMCE)) %>%
-  calculate_ef_stats("spores.Mg")
+konza4_spores_ef_stats <- Konza4_smoke_spores %>%
+  filter(!is.na(MeanMCE)) %>%
+  mutate(spores_g.mg = spores.Mg*3.3e-11) %>% # mass of a fungal spore ~ 3.3×10-11 g
+  calculate_ef_stats(c("spores.Mg", "spores_g.mg"))
 
 # FASMEE23 Bacteria
-fasmee23_bacteria_ef_stats <- F23_BlueBacteria %>%
-  filter(SampleType == "Smoke" & !is.na(MeanMCE)) %>%
-  calculate_ef_stats("Total_bacteria.Mg")
+fasmee23_bacteria_ef_stats <- FASMEE23_smoke_bacteria %>%
+  filter(!is.na(MeanMCE)) %>%
+  mutate(Tot_bacteria_g.Mg = Total_bacteria.Mg*6.0e-14,
+         Live_bacteria_g.Mg = Live_bacteria.Mg*6.0e-14) %>% #mass of bacteria ~6.0×10-14 
+  calculate_ef_stats(c("Total_bacteria.Mg", "Tot_bacteria_g.Mg", "Live_bacteria.Mg", "Live_bacteria_g.Mg"))
 
 # FASMEE23 Spores
-fasmee23_spores_ef_stats <- F23_BlueSpores %>%
-  filter(SampleType == "Smoke" & !is.na(MeanMCE)) %>%
-  calculate_ef_stats("spores.Mg")
+fasmee23_spores_ef_stats <- FASMEE23_smoke_spores %>%
+  filter(!is.na(MeanMCE)) %>%
+  mutate(spores_g.mg = spores.Mg*3.3e-11) %>% # mass of a fungal spore ~ 3.3×10-11 g
+  calculate_ef_stats(c("spores.Mg", "spores_g.mg"))
 
 ef_df <- bind_rows(
-  konza4_bacteria_ef_stats %>% mutate(Group = "Bacteria", Study = "Konza4"),
-  konza4_spores_ef_stats %>% mutate(Group = "Spores", Study = "Konza4"),
-  fasmee23_bacteria_ef_stats %>% mutate(Group = "Bacteria", Study = "FASMEE23"),
-  fasmee23_spores_ef_stats %>% mutate(Group = "Spores", Study = "FASMEE23")
+  konza4_bacteria_ef_stats %>% mutate(Study = "Konza4"),
+  konza4_spores_ef_stats %>% mutate(Study = "Konza4"),
+  fasmee23_bacteria_ef_stats %>% mutate(Study = "FASMEE23"),
+  fasmee23_spores_ef_stats %>% mutate(Study = "FASMEE23")
 ) %>%
-  select(Group, Study, EF, SE, Lower_CI, Upper_CI)
+  select(Study, Measurment = column, EF_value, SE_value, Lower_CI, Upper_CI) %>%
+  arrange(Study, Measurment)
 
-
+print("Final EF DataFrame:")
 print(ef_df)
 
 ```
