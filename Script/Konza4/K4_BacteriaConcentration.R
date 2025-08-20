@@ -46,7 +46,7 @@ bacteria <- bacteria %>%
     RepVolume_m3 = Slide_RepVolume_L/1000
     )
 
-K4_Bacteria_Blanks <- bacteria %>% filter(SampleType == "LabBlank" | SampleType == "FieldBlank") %>% write_csv(., './Output/Output_data/K4/k4_LabBlankBacteria.csv')
+K4_Bacteria_Blanks <- bacteria %>% filter(SampleType == "LabBlank" | SampleType == "FieldBlank") %>% write_csv(., './Output/Output_data/K4/k4_FBLB_bacteria.csv')
 
 blank_means <- bacteria %>%
   filter(SampleType == "LabBlank") %>%
