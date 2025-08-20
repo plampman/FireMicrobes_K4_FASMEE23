@@ -53,7 +53,7 @@ bacteria <- bacteria %>%
   select(-SampleType.y, -Sampler.y) %>%
   rename(SampleType = 'SampleType.x', Sampler = 'Sampler.x')
 
-#F23_Bacteria_Blanks <- bacteria %>% filter(SampleType == "LabBlank" | SampleType == "FieldBlank") %>% write_csv(., './Output/Output_data/FASMEE23/F23_LabBlankBacteria.csv')
+F23_Bacteria_Blanks <- bacteria %>% filter(SampleType == "LabBlank" | SampleType == "FieldBlank") %>% write_csv(., './Output/Output_data/FASMEE23/F23_FBLB_bacteria.csv')
 
 
 smokebact <- bacteria %>%

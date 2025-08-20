@@ -66,6 +66,8 @@ blank_means <- spores %>%
 
 spores <- left_join(spores, blank_means, by = "LB_Batch")
 
+F23_Spore_Blanks <- spores %>% filter(SampleType == "LabBlank" | SampleType == "FieldBlank") %>% write_csv(., './Output/Output_data/FASMEE23/F23_FBLB_spores.csv')
+
 spores <- spores %>%
   #filter(SampleType != "LabBlank") %>%
   mutate(
