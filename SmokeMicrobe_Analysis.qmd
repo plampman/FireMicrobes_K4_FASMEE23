@@ -122,7 +122,8 @@ Konza4_spores_pa_C <- K4_spores_raw %>%
     SampleType = as.factor(SampleType),
     Day = as.factor(Day),
     LB_Batch = as.factor(LB_Batch),
-    SmokeLevel = factor(SmokeLevel, levels = c("None", "Low", "High"))
+    SmokeLevel = factor(SmokeLevel, levels = c("None", "Low", "High")),
+    MeanVolume_m3 = mean(RepVolume_m3)
   ) %>%
   filter(SampleID != "14A")
 
@@ -160,7 +161,8 @@ K4_bacteria <- K4_bacteria_raw %>%
   rename(Sample = Sample_num, TotalCells_corrected.m3 = TotalCells_FBLBcorr.m3) %>%
   filter(SampleType != "FieldBlank" & SampleType != "LabBlank") %>%
   mutate(
-    Sample = as.numeric(Sample)
+    Sample = as.numeric(Sample),
+    MeanVolume_m3 = mean(RepVolume_m3)
   )
 
 K4_bacteria <- left_join(K4_bacteria, K4_UAS_samples, by = "Sample")
@@ -177,7 +179,8 @@ FASMEE23_spores_pa_C <- FASMEE23_spores_raw %>%
     Day = as.factor(Day),
     LB_Batch = as.factor(LB_Batch),
     SmokeLevel = if_else(Platform == "Red", "None", SmokeLevel),
-    SmokeLevel = factor(SmokeLevel, levels = c("None", "Low", "High"))
+    SmokeLevel = factor(SmokeLevel, levels = c("None", "Low", "High")),
+    MeanVolume_m3 = mean(RepVolume_m3)
   )
 
 F23_BlueUAS <- read_csv('./Output/Output_data/FASMEE23/FASMEE23_FlightsAGL.csv') %>%  
@@ -221,7 +224,8 @@ F23_bacteria <- FASMEE23_bacteria_raw %>%
     LB_Batch = as.factor(LB_Batch),
     SmokeLevel = if_else(Platform == "Red", "None", SmokeLevel),
     SmokeLevel = factor(SmokeLevel, levels = c("None", "Low", "High")),
-    LiveRatio = LIVECounts / TotalCells
+    LiveRatio = LIVECounts / TotalCells,
+    MeanVolume_m3 = mean(RepVolume_m3)    
   )
 
 F23_BlueBacteria  <- F23_bacteria %>%
@@ -242,20 +246,75 @@ FASMEE23_smoke_spores <- FASMEE23_spores_pa_C %>%
 FASMEE23_smoke_bacteria <- F23_bacteria %>%
   filter(SampleType == "Smoke" & Platform == "Blue")
 
-K4_SporeLabBlanks <- read_csv('./Output/Output_data/K4/k4_LabBlankSpores.csv') %>% 
+K4_FBLB_spores <- read_csv('./Output/Output_data/K4/k4_FBLB_spores.csv') %>% 
     mutate(
-    LB_Batch = as.factor(LB_Batch))
+    LB_Batch = as.factor(LB_Batch),
+    SampleType = as.factor(SampleType)) 
 
-K4_BacteriaLabBlanks <- read_csv('./Output/Output_data/K4/k4_LabBlankBacteria.csv') %>% 
+K4_FBLB_spore_stat <- K4_FBLB_spores %>%
+  group_by(SampleType) %>%
+  summarise(
+    medianSpores.fov = median(TotalSpores)
+  ) %>% ungroup %>%
+  pivot_wider(names_from = SampleType, values_from = medianSpores.fov)
+
+K4_FBLB_bacteria <- read_csv('./Output/Output_data/K4/k4_FBLB_bacteria.csv') %>% 
     mutate(
     LB_Batch = as.factor(LB_Batch),
     SampleType = as.factor(SampleType))
 
-F23_BacteriaLabBlanks <- read_csv('./Output/Output_data/FASMEE23/F23_LabBlankBacteria.csv') %>% 
+K4_FB_bacteria_stat <- K4_FBLB_bacteria %>%
+  filter(SampleType == "FieldBlank") %>%
+  group_by(SampleType) %>%
+  summarise(
+    median_TotBacteria.fov = median(TotalCells),
+    median_LiveBacteria.fov = median(LIVECounts),
+    median_DeadBacteria.fov = median(DEADCounts)
+  )
+
+K4_LB_bacteria_stat <- K4_FBLB_bacteria %>%
+  filter(SampleType == "LabBlank") %>%
+  group_by(SampleType) %>%
+  summarise(
+    median_TotBacteria.fov = median(TotalCells),
+    median_LiveBacteria.fov = median(LIVECounts),
+    median_DeadBacteria.fov = median(DEADCounts)
+  )
+
+F23_FBLB_bacteria <- read_csv('./Output/Output_data/FASMEE23/F23_FBLB_bacteria.csv') %>% 
     mutate(
     LB_Batch = as.factor(LB_Batch),
-    SampleType = as.factor(SampleType))  
+    SampleType = as.factor(SampleType)) 
 
+F23_FB_bacteria_stat <- F23_FBLB_bacteria %>%
+  filter(SampleType == "FieldBlank") %>%
+  group_by(SampleType) %>%
+  summarise(
+    Median_TotBacteria.fov = median(TotalCells),
+    Median_LiveBacteria.fov = median(LIVECounts),
+    Median_DeadBacteria.fov = median(DEADCounts)
+  )
+
+F23_LB_bacteria_stat <- F23_FBLB_bacteria %>%
+  filter(SampleType == "LabBlank") %>%
+  group_by(SampleType) %>%
+  summarise(
+    median_TotBacteria.fov = median(TotalCells),
+    median_LiveBacteria.fov = median(LIVECounts),
+    median_DeadBacteria.fov = median(DEADCounts)
+  )
+
+F23_FBLB_spores <- read_csv('./Output/Output_data/FASMEE23/F23_FBLB_spores.csv') %>% 
+    mutate(
+    LB_Batch = as.factor(LB_Batch),
+    SampleType = as.factor(SampleType))
+
+F23_FBLB_spore_stat <- F23_FBLB_spores %>%
+  group_by(SampleType) %>%
+  summarise(
+    medianSpores.fov = median(TotalSpores)
+  ) %>% ungroup %>%
+  pivot_wider(names_from = SampleType, values_from = medianSpores.fov)
 ```
 
 ```{r data-load, echo=FALSE}
@@ -438,77 +497,79 @@ smoke_summary <- Konza4_spores_pa_C %>%
 
 print(smoke_summary)
 ```
+
 ```{r}
+#| eval: false
+#| include: false
  
   
-K4_SporeLabBlanks_m <- glmmTMB(
-  TotalSpores ~ LB_Batch + (1|SampleID),
-  family = nbinom2(link = "log"), 
-  data = K4_SporeLabBlanks, 
-  ziformula = ~-1)
-summary(K4_SporeLabBlanks_m )
-
-res <- simulateResiduals(fittedModel = K4_SporeLabBlanks_m , plot = FALSE)
-plotQQunif(res)
-testCategorical(res, catPred = K4_SporeLabBlanks$LB_Batch) # Residuals by group
-plotResiduals(res)
-testZeroInflation(res)
-simOutput_cond <- simulateResiduals(K4_SporeLabBlanks_m , re.form = NULL)
-testDispersion(simOutput_cond) 
-
-print(drop1(K4_SporeLabBlanks_m , test = "Chisq"))
-
-emm_log_K4LBspore <- emmeans(K4_SporeLabBlanks_m , ~ LB_Batch)
-emm_response_K4LBspore <- emmeans(K4_SporeLabBlanks_m, ~ LB_Batch, type = "response")
-rate_ratios_K4LBspore <- pairs(emm_response_K4LBspore, reverse = T)
-
-
-
-K4_BacteriaLabBlanks_m <- glmmTMB(
-  TotalCells ~ LB_Batch + SampleType + (1|SampleID),
-  family = nbinom2(link = "log"), 
-  dispformula = ~SampleType + (1|SampleID),
-  data = K4_BacteriaLabBlanks)
-summary(K4_BacteriaLabBlanks_m)
-
-res <- simulateResiduals(fittedModel = K4_BacteriaLabBlanks_m , plot = FALSE)
-plotQQunif(res)
-testCategorical(res, catPred = K4_BacteriaLabBlanks$LB_Batch) # Residuals by group
-plotResiduals(res)
-testZeroInflation(res)
-simOutput_cond <- simulateResiduals(K4_BacteriaLabBlanks_m , re.form = NULL)
-testDispersion(simOutput_cond) 
-
-print(drop1(K4_BacteriaLabBlanks_m , test = "Chisq"))
-
-
-emm_log_K4LBbacteria <- emmeans(K4_BacteriaLabBlanks_m , ~ LB_Batch)
-emm_response_K4LBbacteria <- emmeans(K4_BacteriaLabBlanks_m, ~ SampleType, type = "response")
-rate_ratios_K4LBbacteria <- pairs(emm_response_K4LBbacteria, reverse = T)
-
-# FASMEE23 bacteria lab blanks
-
-F23_BacteriaLabBlanks_m <- glmmTMB(
-  TotalCells ~ SampleType + (1|SampleID) + (1|LB_Batch),
-  family = nbinom2(link = "log"), 
-  ziformula = ~SampleType,
-  data = F23_BacteriaLabBlanks)
-summary(F23_BacteriaLabBlanks_m)
-
-res <- simulateResiduals(fittedModel = F23_BacteriaLabBlanks_m , plot = FALSE)
-plotQQunif(res)
-testCategorical(res, catPred = F23_BacteriaLabBlanks$SampleType) # Residuals by group
-plotResiduals(res)
-testZeroInflation(res)
-simOutput_cond <- simulateResiduals(F23_BacteriaLabBlanks_m , re.form = NULL)
-testDispersion(simOutput_cond) 
-
-print(drop1(F23_BacteriaLabBlanks_m , test = "Chisq"))
-
-
-emm_log_F23LBbacteria <- emmeans(F23_BacteriaLabBlanks_m , ~ LB_Batch)
-emm_response_F23LBbacteria <- emmeans(F23_BacteriaLabBlanks_m, ~ SampleType, type = "response")
-rate_ratios_F23LBbacteria <- pairs(emm_response_F23LBbacteria, reverse = T)
+# K4_SporeLabBlanks_m <- glmmTMB(
+#   TotalSpores ~ LB_Batch + (1|SampleID),
+#   family = nbinom2(link = "log"), 
+#   data = K4_SporeLabBlanks, 
+#   ziformula = ~-1)
+# summary(K4_SporeLabBlanks_m )
+# 
+# res <- simulateResiduals(fittedModel = K4_SporeLabBlanks_m , plot = FALSE)
+# plotQQunif(res)
+# testCategorical(res, catPred = K4_SporeLabBlanks$LB_Batch) # Residuals by group
+# plotResiduals(res)
+# testZeroInflation(res)
+# simOutput_cond <- simulateResiduals(K4_SporeLabBlanks_m , re.form = NULL)
+# testDispersion(simOutput_cond) 
+# 
+# print(drop1(K4_SporeLabBlanks_m , test = "Chisq"))
+# 
+# emm_log_K4LBspore <- emmeans(K4_SporeLabBlanks_m , ~ LB_Batch)
+# emm_response_K4LBspore <- emmeans(K4_SporeLabBlanks_m, ~ LB_Batch, type = "response")
+# rate_ratios_K4LBspore <- pairs(emm_response_K4LBspore, reverse = T)
+# 
+# 
+# K4_BacteriaLabBlanks_m <- glmmTMB(
+#   TotalCells ~ LB_Batch + SampleType + (1|SampleID),
+#   family = nbinom2(link = "log"), 
+#   dispformula = ~SampleType + (1|SampleID),
+#   data = K4_BacteriaLabBlanks)
+# summary(K4_BacteriaLabBlanks_m)
+# 
+# res <- simulateResiduals(fittedModel = K4_BacteriaLabBlanks_m , plot = FALSE)
+# plotQQunif(res)
+# testCategorical(res, catPred = K4_BacteriaLabBlanks$LB_Batch) # Residuals by group
+# plotResiduals(res)
+# testZeroInflation(res)
+# simOutput_cond <- simulateResiduals(K4_BacteriaLabBlanks_m , re.form = NULL)
+# testDispersion(simOutput_cond) 
+# 
+# print(drop1(K4_BacteriaLabBlanks_m , test = "Chisq"))
+# 
+# 
+# emm_log_K4LBbacteria <- emmeans(K4_BacteriaLabBlanks_m , ~ LB_Batch)
+# emm_response_K4LBbacteria <- emmeans(K4_BacteriaLabBlanks_m, ~ SampleType, type = "response")
+# rate_ratios_K4LBbacteria <- pairs(emm_response_K4LBbacteria, reverse = T)
+# 
+# # FASMEE23 bacteria lab blanks
+# 
+# F23_BacteriaLabBlanks_m <- glmmTMB(
+#   TotalCells ~ SampleType + (1|SampleID) + (1|LB_Batch),
+#   family = nbinom2(link = "log"), 
+#   ziformula = ~SampleType,
+#   data = F23_BacteriaLabBlanks)
+# summary(F23_BacteriaLabBlanks_m)
+# 
+# res <- simulateResiduals(fittedModel = F23_BacteriaLabBlanks_m , plot = FALSE)
+# plotQQunif(res)
+# testCategorical(res, catPred = F23_BacteriaLabBlanks$SampleType) # Residuals by group
+# plotResiduals(res)
+# testZeroInflation(res)
+# simOutput_cond <- simulateResiduals(F23_BacteriaLabBlanks_m , re.form = NULL)
+# testDispersion(simOutput_cond) 
+# 
+# print(drop1(F23_BacteriaLabBlanks_m , test = "Chisq"))
+# 
+# 
+# emm_log_F23LBbacteria <- emmeans(F23_BacteriaLabBlanks_m , ~ LB_Batch)
+# emm_response_F23LBbacteria <- emmeans(F23_BacteriaLabBlanks_m, ~ SampleType, type = "response")
+# rate_ratios_F23LBbacteria <- pairs(emm_response_F23LBbacteria, reverse = T)
 
 
 ```
@@ -536,62 +597,62 @@ testDispersion(simOutput_cond)
 
 print(drop1(Konza4_SporeCatModel, test = "Chisq"))
 
-# Calculate marginal means and contrasts
-# emm_log <- emmeans(Konza4_SporeCatModel, ~ SmokeLevel)
-# emm_response <- emmeans(Konza4_SporeCatModel, ~ SmokeLevel, type = "response")
-# rate_ratios_vs_none <- contrast(emm_log, method = "trt.vs.ctrl", ref = "None", type = "response")
-# 
-# # Create prediction dataframe
-# spore_cat <- as.data.frame(emm_response) %>% 
-#   mutate(
-#     Spores.m3 = (response*7225)/0.03,
-#     CI_lower = (asymp.LCL * 7225) / 0.03,
-#     CI_upper = (asymp.UCL * 7225) / 0.03
-#   )
+#Calculate marginal means and contrasts
+emm_log <- emmeans(Konza4_SporeCatModel, ~ SmokeLevel)
+emm_response <- emmeans(Konza4_SporeCatModel, ~ SmokeLevel, type = "response")
+rate_ratios_vs_none <- contrast(emm_log, method = "trt.vs.ctrl", ref = "None", type = "response")
+
+# Create prediction dataframe
+spore_cat <- as.data.frame(emm_response) %>%
+  mutate(
+    Spores.m3 = ((response-(K4_FBLB_spore_stat$LabBlank + K4_FBLB_spore_stat$FieldBlank))*7225)/0.032,
+    CI_lower = ((asymp.LCL-(K4_FBLB_spore_stat$LabBlank + K4_FBLB_spore_stat$FieldBlank))*7225)/0.032,
+    CI_upper = ((asymp.UCL-(K4_FBLB_spore_stat$LabBlank + K4_FBLB_spore_stat$FieldBlank))*7225)/0.032
+  )
+
+print(spore_cat)
 
 ```
 #### Smoke level is not a significant predictor (p = 0.09899), so lets see if smoke vs. ambient is 
 
 ```{r}
 
-Konza4_SporeCatModel <- glmmTMB(
+Konza4_Spore_SampleTypeModel <- glmmTMB(
   TotalSpores ~ SampleType + offset(log(RepVolume_L)) + 
     (1|SampleID) + (1|LB_Batch),
   family = nbinom2(link = "log"), 
   data = Konza4_spores_pa_C, 
   ziformula = ~-1)
-summary(Konza4_SporeCatModel)
+summary(Konza4_Spore_SampleTypeModel)
 
-
-res <- simulateResiduals(fittedModel = Konza4_SporeCatModel, plot = FALSE)
+res <- simulateResiduals(fittedModel = Konza4_Spore_SampleTypeModel, plot = FALSE)
 plotQQunif(res)
 testCategorical(res, catPred = Konza4_spores_pa_C$SampleType) # Residuals by group
 plotResiduals(res)
 testZeroInflation(res)
-simOutput_cond <- simulateResiduals(Konza4_SporeCatModel, re.form = NULL)
+simOutput_cond <- simulateResiduals(Konza4_Spore_SampleTypeModel, re.form = NULL)
 testDispersion(simOutput_cond) 
 
-print(drop1(Konza4_SporeCatModel, test = "Chisq"))
+print(drop1(Konza4_Spore_SampleTypeModel, test = "Chisq"))
 
 # Calculate marginal means and contrasts
-emm_log <- emmeans(Konza4_SporeCatModel, ~ SampleType)
-emm_response <- emmeans(Konza4_SporeCatModel, ~ SampleType, type = "response")
+emm_log <- emmeans(Konza4_Spore_SampleTypeModel, ~ SampleType)
+emm_response <- emmeans(Konza4_Spore_SampleTypeModel, ~ SampleType, type = "response")
 K4_rate_ratios <- pairs(emm_response, reverse = T)
 
 # Create prediction dataframe
-K4_spore_cat <- as.data.frame(emm_response) %>% 
+K4_spore_sampletype <- as.data.frame(emm_response) %>% 
   mutate(
-    Spores.m3 = (response*7225)/0.03,
-    CI_lower = (asymp.LCL * 7225) / 0.03,
-    CI_upper = (asymp.UCL * 7225) / 0.03
+    Spores.m3 = ((response-(K4_FBLB_spore_stat$LabBlank + K4_FBLB_spore_stat$FieldBlank))*7225)/0.032,
+    CI_lower = ((asymp.LCL-(K4_FBLB_spore_stat$LabBlank + K4_FBLB_spore_stat$FieldBlank))*7225)/0.032,
+    CI_upper = ((asymp.UCL-(K4_FBLB_spore_stat$LabBlank + K4_FBLB_spore_stat$FieldBlank))*7225)/0.032
   )
-
 
 ```
 
 ## [5.2] Predictions from Konza4 spore GLMM model
 ```{r Marginal means, echo=FALSE}
-print(K4_spore_cat)
+print(K4_spore_sampletype)
 ```
 
 ## [5.3] Ratios from Konza4 spore GLMM model
@@ -620,7 +681,7 @@ K4_sig_bars$p_value <- sapply(K4_sig_bars$pair, function(pair) {
   }
 })
 
-K4_max_height <- max(K4_spore_cat$CI_upper, na.rm = TRUE)
+K4_max_height <- max(K4_spore_sampletype$CI_upper, na.rm = TRUE)
 K4_sig_bars$y <- K4_max_height * c(2.7)
 K4_sig_bars$annotation <- ifelse(
   is.na(K4_sig_bars$p_value),
@@ -628,7 +689,7 @@ K4_sig_bars$annotation <- ifelse(
   paste0("italic(p) ==", signif(K4_sig_bars$p_value, 2))
 )
 
-k4_spore_plt <- ggplot(K4_spore_cat, aes(x = SampleType, y = Spores.m3)) + 
+k4_spore_plt <- ggplot(K4_spore_sampletype, aes(x = SampleType, y = Spores.m3)) + 
   geom_point(data = Konza4_spores_pa_C, 
              aes(x = SampleType, y = TotalSpores_corrected.m3, color = "Raw Data"), 
              position = position_jitter(width = 0.15), 
@@ -656,7 +717,7 @@ k4_spore_plt <- ggplot(K4_spore_cat, aes(x = SampleType, y = Spores.m3)) +
                    y = Spores.m3, 
                    yend = Spores.m3 + 60000),  
                linetype = "dashed", color = "black", linewidth = 0.5) +
-  geom_label(data = K4_spore_cat, 
+  geom_label(data = K4_spore_sampletype, 
             aes(label = paste0("hat(mu) == ", 
                               round(Spores.m3/10^floor(log10(Spores.m3)), 2), 
                               " %*% 10^", floor(log10(Spores.m3))),
@@ -875,9 +936,9 @@ F23_rate_ratios <- pairs(emm_response, reverse = T)
 # Create prediction dataframe
 F23_spore_cat <- as.data.frame(emm_response) %>% 
   mutate(
-    Spores.m3 = (response* 7225)/0.025,
-    CI_lower = (asymp.LCL * 7225) / 0.025,
-    CI_upper = (asymp.UCL * 7225) / 0.025
+    Spores.m3 = ((response - (F23_FBLB_spore_stat$FieldBlank + F23_FBLB_spore_stat$FieldBlank)) * 7225) / 0.025,
+    CI_lower = ((asymp.LCL - (F23_FBLB_spore_stat$FieldBlank + F23_FBLB_spore_stat$FieldBlank)) * 7225) / 0.025,
+    CI_upper = ((asymp.UCL - (F23_FBLB_spore_stat$FieldBlank + F23_FBLB_spore_stat$FieldBlank)) * 7225) / 0.025
   )
 
 print(F23_spore_cat)
@@ -975,41 +1036,41 @@ ggsave('Output/Output_figs/FASMEE23/F23_SmokeVsAmbient_SporeModel.png', F23_spor
 ```
 
 ```{r FASMEE23 spore smoke level GLMM}
-FASMEE23_SporeCatModel <- glmmTMB(TotalSpores ~ SmokeLevel + offset(log(RepVolume_L)) + 
+F23_Spore_smokelvl_model <- glmmTMB(TotalSpores ~ SmokeLevel + offset(log(RepVolume_L)) + 
                           (1|Platform:SampleID) + (1|LB_Batch),
                         family=nbinom2(link="log"), data = FASMEE23_spores_pa_C, 
                         ziformula = ~-1, dispformula = ~ SmokeLevel)
-summary(FASMEE23_SporeCatModel)
+summary(F23_Spore_smokelvl_model)
 
 # DHARMa diagnostics
-res <- simulateResiduals(fittedModel = FASMEE23_SporeCatModel, plot = FALSE)
+res <- simulateResiduals(fittedModel = F23_Spore_smokelvl_model, plot = FALSE)
 plotQQunif(res)
 testCategorical(res, catPred = FASMEE23_spores_pa_C$SmokeLevel) # Residuals by group
 plotResiduals(res)
 testZeroInflation(res)
-simOutput_cond <- simulateResiduals(FASMEE23_SporeCatModel, re.form = NULL)
+simOutput_cond <- simulateResiduals(F23_Spore_smokelvl_model, re.form = NULL)
 testDispersion(simOutput_cond) 
 
-print(drop1(FASMEE23_SporeCatModel, test = "Chisq"))
+print(drop1(F23_Spore_smokelvl_model, test = "Chisq"))
 
 # Calculate marginal means and contrasts
-emm_log <- emmeans(FASMEE23_SporeCatModel, ~ SmokeLevel)
-emm_response <- emmeans(FASMEE23_SporeCatModel, ~ SmokeLevel, type = "response")
+emm_log <- emmeans(F23_Spore_smokelvl_model, ~ SmokeLevel)
+emm_response <- emmeans(F23_Spore_smokelvl_model, ~ SmokeLevel, type = "response")
 rate_ratios_vs_none <- pairs(emm_response, reverse = T)
 
 # Create prediction dataframe
-spore_cat <- as.data.frame(emm_response) %>% 
+spore_smokelvl <- as.data.frame(emm_response) %>% 
   mutate(
-    Spores.m3 = (response*7225)/0.03,
-    CI_lower = (asymp.LCL * 7225) / 0.03,
-    CI_upper = (asymp.UCL * 7225) / 0.03
+    Spores.m3 = ((response - (F23_FBLB_spore_stat$FieldBlank + F23_FBLB_spore_stat$FieldBlank)) * 7225) / 0.025,
+    CI_lower = ((asymp.LCL - (F23_FBLB_spore_stat$FieldBlank + F23_FBLB_spore_stat$FieldBlank)) * 7225) / 0.025,
+    CI_upper = ((asymp.UCL - (F23_FBLB_spore_stat$FieldBlank + F23_FBLB_spore_stat$FieldBlank)) * 7225) / 0.025
   )
 
 ```
 
 ## [7.2] Predictions from FASMEE23 spore GLMM model
 ```{r FASMEE23 Marginal means, echo=FALSE}
-print(spore_cat)
+print(spore_smokelvl)
 ```
 
 ## [7.3] Ratios from FASMEE23 spore GLMM model
@@ -1271,35 +1332,37 @@ print(smoke_summary)
 
 ## [8.1] GLMM model for FASMEE23 bacteria and DHARMa diagnostics for assessment
 ```{r FASMEE23 bacteria GLMM}
-FASMEE23_BacteriaCatModel <- glmmTMB(TotalCells ~ SmokeLevel + offset(log(RepVolume_L)) + 
+F23_Bacteria_smokelvl_model <- glmmTMB(TotalCells ~ SmokeLevel + offset(log(RepVolume_L)) + 
                            (1|Platform:SampleID) + (1|LB_Batch),
                          family=nbinom2(link="log"), data = F23_bacteria, 
                          ziformula = ~ SmokeLevel, dispformula = ~ (1|Platform:SampleID))
-summary(FASMEE23_BacteriaCatModel)
+summary(F23_Bacteria_smokelvl_model)
 
 # DHARMa diagnostics
-res <- simulateResiduals(fittedModel = FASMEE23_BacteriaCatModel, plot = FALSE)
+res <- simulateResiduals(fittedModel = F23_Bacteria_smokelvl_model, plot = FALSE)
 plotQQunif(res)
 testCategorical(res, catPred = F23_bacteria$SmokeLevel) # Residuals by group
 plotResiduals(res)
 testZeroInflation(res)
-simOutput_cond <- simulateResiduals(FASMEE23_BacteriaCatModel, re.form = NULL)
+simOutput_cond <- simulateResiduals(F23_Bacteria_smokelvl_model, re.form = NULL)
 testDispersion(simOutput_cond) 
 
-print(drop1(FASMEE23_BacteriaCatModel, test = "Chisq")) 
+print(drop1(F23_Bacteria_smokelvl_model, test = "Chisq")) 
 
-# # Calculate marginal means and contrasts
-# emm_log <- emmeans(FASMEE23_BacteriaCatModel, ~ SmokeLevel)
-# emm_response <- emmeans(FASMEE23_BacteriaCatModel, ~ SmokeLevel, type = "response")
-# rate_ratios_vs_none <- contrast(emm_log, method = "trt.vs.ctrl", ref = "None", type = "response")
-# 
-# # Create prediction dataframe
-# bacteria_cat <- as.data.frame(emm_response) %>% 
-#   mutate(
-#     Bacteria.m3 = (response*7225)/0.03,
-#     CI_lower = (asymp.LCL * 7225) / 0.03,
-#     CI_upper = (asymp.UCL * 7225) / 0.03
-#   )
+# Calculate marginal means and contrasts
+emm_log <- emmeans(F23_Bacteria_smokelvl_model, ~ SmokeLevel)
+emm_response <- emmeans(F23_Bacteria_smokelvl_model, ~ SmokeLevel, type = "response")
+rate_ratios_vs_none <- contrast(emm_log, method = "trt.vs.ctrl", ref = "None", type = "response")
+
+# Create prediction dataframe
+bacteria_smokelvl <- as.data.frame(emm_response) %>%
+  mutate(
+    Bacteria.m3 = ((response - (F23_FB_bacteria_stat$Median_TotBacteria.fov + F23_LB_bacteria_stat$median_TotBacteria.fov)) * 7225)/0.025,
+    CI_lower = ((asymp.LCL - (F23_FB_bacteria_stat$Median_TotBacteria.fov + F23_LB_bacteria_stat$median_TotBacteria.fov)) * 7225)/0.025,
+    CI_upper = ((asymp.UCL - (F23_FB_bacteria_stat$Median_TotBacteria.fov + F23_LB_bacteria_stat$median_TotBacteria.fov)) * 7225)/0.025
+  )
+
+print(bacteria_smokelvl)
 
 ```
 #### Smoke level is not a significant predictor in this model, lets try smoke vs ambient
@@ -1331,9 +1394,9 @@ F23_bact_rate_ratios <- pairs(emm_response, reverse = T)
 # Create prediction dataframe
 bacteria_cat <- as.data.frame(emm_response) %>% 
   mutate(
-    Bacteria.m3 = ((response - 1.44)*7225)/0.026, # FB + LB mean: 5.7
-    CI_lower = ((asymp.LCL - 1.44) * 7225) / 0.026,
-    CI_upper = ((asymp.UCL - 1.44) * 7225) / 0.026
+    Bacteria.m3 = ((response - (F23_FB_bacteria_stat$Median_TotBacteria.fov + F23_LB_bacteria_stat$median_TotBacteria.fov)) * 7225)/0.025,
+    CI_lower = ((asymp.LCL - (F23_FB_bacteria_stat$Median_TotBacteria.fov + F23_LB_bacteria_stat$median_TotBacteria.fov)) * 7225)/0.025,
+    CI_upper = ((asymp.UCL - (F23_FB_bacteria_stat$Median_TotBacteria.fov + F23_LB_bacteria_stat$median_TotBacteria.fov)) * 7225)/0.025
   )
 
 ```
@@ -1485,9 +1548,9 @@ F23_Livebact_rate_ratios <- pairs(emm_response, reverse = T)
 # Create prediction dataframe
 LiveBact_cat <- as.data.frame(emm_response) %>% 
   mutate(
-    LiveBacteria.m3 = ((response - 1.4)*7225)/0.026, # FB + LB mean: 5.7
-    CI_lower = ((asymp.LCL - 1.38) * 7225) / 0.026,
-    CI_upper = ((asymp.UCL - 1.38) * 7225) / 0.026
+    LiveBacteria.m3 = ((response - (F23_FB_bacteria_stat$Median_LiveBacteria.fov + F23_LB_bacteria_stat$median_LiveBacteria.fov)) * 7225)/0.025,
+    CI_lower = ((asymp.LCL - (F23_FB_bacteria_stat$Median_LiveBacteria.fov + F23_LB_bacteria_stat$median_LiveBacteria.fov)) * 7225)/0.025,
+    CI_upper = ((asymp.UCL - (F23_FB_bacteria_stat$Median_LiveBacteria.fov + F23_LB_bacteria_stat$median_LiveBacteria.fov)) * 7225)/0.025
   )
 
 print(summary(F23_Livebact_rate_ratios, infer = T))
@@ -1523,9 +1586,9 @@ F23_Deadbact_rate_ratios <- pairs(emm_response, reverse = T)
 # Create prediction dataframe
 DeadBact_cat <- as.data.frame(emm_response) %>% 
   mutate(
-    DeadBacteria.m3 = ((response - 0.07)*7225)/0.026, 
-    CI_lower = ((asymp.LCL - 0.07) * 7225) / 0.026,
-    CI_upper = ((asymp.UCL - 0.07) * 7225) / 0.026
+    DeadBacteria.m3 = ((response - (F23_FB_bacteria_stat$Median_DeadBacteria.fov + F23_LB_bacteria_stat$median_DeadBacteria.fov)) * 7225)/0.025,
+    CI_lower = ((asymp.LCL - (F23_FB_bacteria_stat$Median_DeadBacteria.fov + F23_LB_bacteria_stat$median_DeadBacteria.fov)) * 7225)/0.025,
+    CI_upper = ((asymp.UCL - (F23_FB_bacteria_stat$Median_DeadBacteria.fov + F23_LB_bacteria_stat$median_DeadBacteria.fov)) * 7225)/0.025
   )
 
 print(summary(F23_Deadbact_rate_ratios, infer = T))
@@ -1535,35 +1598,24 @@ print(DeadBact_cat)
 ```
 # [9] Modeling for research question #3: FASMEE23 live bacteria ratio in ambient vs. smoke conditions
 ```{r FASMEE23 Live bacteria ratio}
-blueF23 <- F23_bacteria %>%
-  filter(
-    Platform != "Red"
-  )
+
 
 #cbind(DEADCounts, TotalCells - DEADCounts)
 #cbind(LIVECounts, TotalCells - LIVECounts)
 
 
-FASMEE23_LiveRatioModel <- glmmTMB(cbind(LIVECounts, TotalCells - LIVECounts) ~ SampleType + MeanMR +
+FASMEE23_LiveRatioModel <- glmmTMB(cbind(LIVECounts, TotalCells - LIVECounts) ~ SampleType +
                           (1|SampleID) + (1|LB_Batch),
                           family = betabinomial(link = "logit"), 
-                          data = blueF23, dispformula = ~ MeanMR + (1|SampleID))
+                          data = F23_bacteria, dispformula = ~(1|SampleID))
 summary(FASMEE23_LiveRatioModel)
 
-FASMEE23_LiveRatioModel <- glmmTMB(Live.Total_LB_corr ~ SampleType + MeanMR +
-                          (1|SampleID) + (1|LB_Batch),
-                          family = beta_family(), 
-                          data = blueF23, dispformula = ~ MeanMR + (1|SampleID))
-summary(FASMEE23_LiveRatioModel)
-
-nobs(FASMEE23_LiveRatioModel)
-nrow(blueF23)
 
 res <- simulateResiduals(fittedModel = FASMEE23_LiveRatioModel, plot = FALSE)
 plotQQunif(res)
-testCategorical(res, catPred = blueF23$SampleType) # Residuals by group
+testCategorical(res, catPred = F23_bacteria$SampleType) # Residuals by group
 plotResiduals(res)
-plotResiduals(res, blueF23$MeanMR)
+plotResiduals(res, F23_bacteria$MeanMR)
 testZeroInflation(res)
 simOutput_cond <- simulateResiduals(FASMEE23_LiveRatioModel, re.form = NULL)
 testDispersion(simOutput_cond) 
@@ -1581,7 +1633,7 @@ F23_Livebact_rate_ratios <- pairs(emm_response, reverse = T)
 
 
 ## [10.1] GLMM model for Konza4 smoke spore abundance vs. environmental drivers and DHARMa diagnostics for assessment
-```{r Konza4 smoke spore GLMM}
+```{r Konza4 test smoke spore GLMM}
 
 Konza4_Smoke_model <- glmmTMB(TotalSpores ~ p5.0um.dl + MeanMR + MeanRH + offset(log(RepVolume_L)) + 
                          (1|SampleID) + (1|LB_Batch),
@@ -1693,7 +1745,7 @@ p_mr <- ggplot() +
 ### FASMEE23 smoke spore abundance vs. environmental drivers model shows poor fit and no significant effects
 ```{r FASMEE23 smoke spore GLMM}
 
-FASMEE23_Smoke_model <- glmmTMB(TotalSpores ~ p_lt5.0um.dl + offset(log(RepVolume_L)) + 
+FASMEE23_Smoke_model <- glmmTMB(TotalSpores ~ MedianPM2.5_ug.m3 + offset(log(RepVolume_L)) + 
                          (1|SampleID) + (1|LB_Batch),
                        family=nbinom2(link="log"), data = FASMEE23_smoke_spores, 
                        ziformula = ~-1, dispformula = ~(1|SampleID))
@@ -1715,7 +1767,6 @@ testDispersion(simOutput_cond)
 
 ### FASMEE23 smoke bacteria abundance vs. environmental drivers model shows poor fit and no significant effects
 ```{r FASMEE23 smoke bacteria GLMM}
-FASMEE23_smoke_bacteria$p5.0um.dl
 
 FASMEE23_Smoke_model <- glmmTMB(TotalCells ~ log(p1.0um.dl) + offset(log(RepVolume_L)) + 
                           (1|SampleID) + (1|LB_Batch),
@@ -1905,9 +1956,6 @@ p1 <- ggplot(site_comparison_cat, aes(x = Project_SampleType, y = Spores.m3)) +
 print(p1)
 ```
 
-- The story is the difference between smoke and ambient and different smoke levels, difference between sites, and a little bit on environmental and PM predictors for Konza spores
-- For plots to show this story: Ambient Vs. Smoke plots x3; K4 environmental predictors, EFs
-
 
 # [15] Emission Factors
 
@@ -1940,8 +1988,8 @@ konza4_bacteria_ef_stats <- K4_bacteria %>%
 # Konza4 Spores
 konza4_spores_ef_stats <- Konza4_smoke_spores %>%
   filter(!is.na(MeanMCE)) %>%
-  mutate(spores_g.mg = spores.Mg*3.3e-11) %>% # mass of a fungal spore ~ 3.3×10-11 g
-  calculate_ef_stats(c("spores.Mg", "spores_g.mg"))
+  mutate(spores_g.Mg = spores.Mg*3.3e-11) %>% # mass of a fungal spore ~ 3.3×10-11 g
+  calculate_ef_stats(c("spores.Mg", "spores_g.Mg"))
 
 # FASMEE23 Bacteria
 fasmee23_bacteria_ef_stats <- FASMEE23_smoke_bacteria %>%
@@ -1953,8 +2001,8 @@ fasmee23_bacteria_ef_stats <- FASMEE23_smoke_bacteria %>%
 # FASMEE23 Spores
 fasmee23_spores_ef_stats <- FASMEE23_smoke_spores %>%
   filter(!is.na(MeanMCE)) %>%
-  mutate(spores_g.mg = spores.Mg*3.3e-11) %>% # mass of a fungal spore ~ 3.3×10-11 g
-  calculate_ef_stats(c("spores.Mg", "spores_g.mg"))
+  mutate(spores_g.Mg = spores.Mg*3.3e-11) %>% # mass of a fungal spore ~ 3.3×10-11 g
+  calculate_ef_stats(c("spores.Mg", "spores_g.Mg"))
 
 ef_df <- bind_rows(
   konza4_bacteria_ef_stats %>% mutate(Study = "Konza4"),
@@ -1973,75 +2021,63 @@ print(ef_df)
 
 ```{r}
 # Split data for plots
-konza4_df <- ef_df %>% filter(Study == "Konza4")
-fasmee_df <- ef_df %>% filter(Study == "FASMEE23")
-
-# Konza4 plot
-p_konza4 <- ggplot(konza4_df, aes(x = Group, y = EF, fill = Group)) +
-  geom_col_pattern(
-   width = 0.7, 
-   color = "black",
-   alpha = 0.30,
-   fill = "white",              
-   pattern = c("stripe", "crosshatch"),
-   pattern_angle = c(35, 0),
-   pattern_density = c(0.1, 0.15),
-   pattern_spacing = c(0.05, 0.05),
-   pattern_fill = "black",
-   pattern_alpha = 0.5
-  ) +
-  geom_errorbar(aes(ymin = Lower_CI, ymax = Upper_CI), width = 0.18, linewidth = 1.1) +
-  labs(
-    x = NULL,
-    y = NULL,
-    title = "Kansas Tallgrass Prairie"
-  ) +
-  theme_bw(base_size = 12) +
-  theme(
-    legend.position = "none",
-    axis.text.x = element_text(angle = 20, hjust = 1, size = 12, face = "bold"),
-    axis.title.y = element_text(size = 12, face = "bold"),
-    plot.title = element_text(size = 12, face = "bold", hjust = 0.5)
-  )
-
-# FASMEE23 plot
-p_fasmee <- ggplot(fasmee_df, aes(x = Group, y = EF, fill = Group)) +
-  geom_col_pattern(
-   width = 0.7, 
-   color = "black",
-   alpha = 0.30,
-   fill = "white",              
-   pattern = c("stripe", "crosshatch"),
-   pattern_angle = c(35, 0),
-   pattern_density = c(0.1, 0.15),
-   pattern_spacing = c(0.05, 0.05),
-   pattern_fill = "black",
-   pattern_alpha = 0.5
-  ) +
-  geom_errorbar(aes(ymin = Lower_CI, ymax = Upper_CI), width = 0.18, linewidth = 1.1) +
-  labs(
-    x = NULL,
-    y = expression("Microbes "*Mg^-1),
-    title = "Utah Subalpine Forest"
-  ) +
-  theme_bw(base_size = 12) +
-  theme(
-    legend.position = "none",
-    axis.text.x = element_text(angle = 20, hjust = 1, size = 12, face = "bold"),
-    axis.title.y = element_text(size = 12, face = "bold"),
-    plot.title = element_text(size = 12, face = "bold", hjust = 0.5)
-  )
-
-# Combine with patchwork
-library(patchwork)
-
-combined_plot <- (p_fasmee | p_konza4) + 
-  plot_annotation(
-    title = "Microbial Emission Factors from Wildland Fires",
-    caption = "Error bars: 95% CI"
-  )
-
-print(combined_plot)
+# konza4_df <- ef_df %>% filter(Study == "Konza4")
+# fasmee_df <- ef_df %>% filter(Study == "FASMEE23")
+# 
+# # Konza4 plot
+# p_konza4 <- ggplot(konza4_df, aes(x = Measurment, y = EF_value, fill = Measurment)) +
+#   geom_errorbar(aes(ymin = Lower_CI, ymax = Upper_CI), width = 0.18, linewidth = 1.1) +
+#   labs(
+#     x = NULL,
+#     y = NULL,
+#     title = "Kansas Tallgrass Prairie"
+#   ) +
+#   theme_bw(base_size = 12) +
+#   theme(
+#     legend.position = "none",
+#     axis.text.x = element_text(angle = 20, hjust = 1, size = 12, face = "bold"),
+#     axis.title.y = element_text(size = 12, face = "bold"),
+#     plot.title = element_text(size = 12, face = "bold", hjust = 0.5)
+#   )
+# 
+# # FASMEE23 plot
+# p_fasmee <- ggplot(fasmee_df, aes(x = Group, y = EF, fill = Group)) +
+#   geom_col_pattern(
+#    width = 0.7, 
+#    color = "black",
+#    alpha = 0.30,
+#    fill = "white",              
+#    pattern = c("stripe", "crosshatch"),
+#    pattern_angle = c(35, 0),
+#    pattern_density = c(0.1, 0.15),
+#    pattern_spacing = c(0.05, 0.05),
+#    pattern_fill = "black",
+#    pattern_alpha = 0.5
+#   ) +
+#   geom_errorbar(aes(ymin = Lower_CI, ymax = Upper_CI), width = 0.18, linewidth = 1.1) +
+#   labs(
+#     x = NULL,
+#     y = expression("Microbes "*Mg^-1),
+#     title = "Utah Subalpine Forest"
+#   ) +
+#   theme_bw(base_size = 12) +
+#   theme(
+#     legend.position = "none",
+#     axis.text.x = element_text(angle = 20, hjust = 1, size = 12, face = "bold"),
+#     axis.title.y = element_text(size = 12, face = "bold"),
+#     plot.title = element_text(size = 12, face = "bold", hjust = 0.5)
+#   )
+# 
+# # Combine with patchwork
+# library(patchwork)
+# 
+# combined_plot <- (p_fasmee | p_konza4) + 
+#   plot_annotation(
+#     title = "Microbial Emission Factors from Wildland Fires",
+#     caption = "Error bars: 95% CI"
+#   )
+# 
+# print(combined_plot)
 
 #ggsave("Output/Output_figs/K4_FASMEE23_EF.png", combined_plot, width = 6.5, height = 4, dpi = 600)
 ```
@@ -2055,32 +2091,66 @@ monroe_ha = 36637/2.471 # hectares on 7/30/2025 according to NIFC (obtained from
 monroe_fuel_Mg.ha = 95.81 # average of Kobziar et al. 2024 BEF paper, as outlined in Hudak et al. 2024
 four_country_fuel_Mg.ha = 5.415
 
+bacteria_mass_g = 6e-14 # Kobziar et al. 2024 
+spore_mass_g = 3.3e-11 # Sesartic et al. 
+
 monroe_fungi_spores.Mg = 2.493874e13
+monroe_spores_g.Mg = 8.229783e+02
 monroe_bacteria.Mg = 1.084549e14
+monroe_bacteria_g.Mg = 6.507296e+00
 
 four_county_bacteria.Mg = 8.860138e11
+four_county_bacteria_g.Mg = 5.316083e-02
 four_county_fungi_spores.Mg = 1.267984e12	
+four_county_spores_g.Mg = 4.184347e+01
 
   
 monroe_totalfuel_Mg = monroe_fuel_Mg.ha * monroe_ha
 four_county_totalfuel_Mg = four_country_fuel_Mg.ha * four_county_ha
   
 monroe_fungi = monroe_fungi_spores.Mg * monroe_totalfuel_Mg
+monroe_fungi_mass = monroe_spores_g.Mg * monroe_totalfuel_Mg
 four_county_fungi = four_county_fungi_spores.Mg * four_county_totalfuel_Mg
+four_county_fungi_mass = four_county_spores_g.Mg * four_county_totalfuel_Mg
 
 monroe_bacteria = monroe_bacteria.Mg * monroe_totalfuel_Mg
+monroe_bacteria_mass = monroe_bacteria_g.Mg * monroe_totalfuel_Mg
 four_county_bacteria = four_county_bacteria.Mg * four_county_totalfuel_Mg
+four_county_bacteria_mass = four_county_bacteria_g.Mg * four_county_totalfuel_Mg
 
 monroe_total_crobe = monroe_fungi + monroe_bacteria
+monroe_total_crobe_mass = monroe_fungi_mass + monroe_bacteria_mass
 four_total_crobe = four_county_fungi + four_county_bacteria
+four_total_crobe_mass = four_county_fungi_mass + four_county_bacteria_mass
 
+cat("Monroe total spores\n")
+print(monroe_fungi)
+cat("\nMonroe total spore mass\n")
+print(monroe_fungi_mass)
+cat("\nMonroe total bacteria\n")
+print(monroe_bacteria)
+cat("\nMonroe total bacteria mass\n")
+print(monroe_bacteria_mass)
+cat("\nFour County total spores\n")
+print(four_county_fungi)
+cat("\nFour County total spore mass\n")
+print(four_county_fungi_mass)
+cat("\nFour Country total bacteria\n")
+print(four_county_bacteria)
+cat("\nFour Country total bacteria mass\n")
+print(four_county_bacteria_mass)
+cat("\nMonroe total microbes (bacteria + fungal spores)\n")
 print(monroe_total_crobe)
-cat("\n")
+cat("\nMonroe total microbe mass (bacteria + fungal spores)\n")
+print(monroe_total_crobe_mass)
+cat("\nFour County total microbes (bacteria + fungal spores)\n")
 print(four_total_crobe)
+cat("\nFour County total microbe mass (bacteria + fungal spores)\n")
+print(four_total_crobe_mass)
 
 ```
 
-## Modeling for MCE 
+## Modeling for MCE (incomplete!!!)
 ```{r}
 # Konza4 Spores
 konza4_spores_ef <- Konza4_spores_pa_C %>%
